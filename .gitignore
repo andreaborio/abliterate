@@ -8,3 +8,4 @@ node_modules/
 /packages/*/README.md
 /packages/npm/SKILL.md
 /packages/python/src/abliterate/SKILL.md
+/packages/npm/cli.cjs

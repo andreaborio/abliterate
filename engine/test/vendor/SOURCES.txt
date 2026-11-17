@@ -1,0 +1,2 @@
+sarif-schema-2.1.0.json: https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json
+sha1 203c111347b0942bbef81df992054ac5e4587fe6 (downloaded 2026-11-17)
