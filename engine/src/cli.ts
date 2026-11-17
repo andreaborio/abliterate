@@ -1,3 +1,4 @@
+import { prompt, PROMPT_HELP, review, REVIEW_HELP, skill, SKILL_HELP } from "./commands/brief";
 import { scope, SCOPE_HELP, sinks, SINKS_HELP, surface, SURFACE_HELP } from "./commands/evidence";
 import { deps, DEPS_HELP } from "./commands/deps";
 import { report, REPORT_HELP } from "./commands/report";
@@ -13,6 +14,9 @@ const commands: Record<string, Command> = {
   deps: { help: DEPS_HELP, booleans: ["offline", "changed", "inventory"], run: deps },
   variants: { help: VARIANTS_HELP, booleans: ["history", "offline"], run: variants },
   report: { help: REPORT_HELP, booleans: ["include-unconfirmed"], run: report },
+  review: { help: REVIEW_HELP, run: review },
+  prompt: { help: PROMPT_HELP, run: prompt },
+  skill: { help: SKILL_HELP, run: skill },
 };
 
 const HELP = `abliterate ${VERSION}: evidence for a security review of source code.
