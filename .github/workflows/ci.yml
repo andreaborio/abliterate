@@ -3,9 +3,25 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: npm ci --prefix engine --ignore-scripts --no-audit --no-fund
+      - run: npx --prefix engine tsc -p engine --noEmit
+      # Tests replay recorded OSV/KEV/EPSS responses: no network calls to advisory services.
+      - run: npm test --prefix engine
+
   packages:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
@@ -24,3 +40,38 @@ jobs:
       - run: python3 build.py
       - run: python3 verification/check_release.py
       - run: python3 verification/make_cases.py "$RUNNER_TEMP/abliterate-cases"
+      - run: python3 evals/make_fixtures.py "$RUNNER_TEMP/abliterate-fixtures"
+      - name: Validate the Claude Code plugin and marketplace
+        run: npx -y @anthropic-ai/claude-code@2.1.326 plugin validate . --strict
+
+  action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          path: action
+          persist-credentials: false
+      - name: Put a fixture repository in the workspace
+        run: |
+          set -eu
+          python3 action/evals/make_fixtures.py "$RUNNER_TEMP/fx"
+          cp -R "$RUNNER_TEMP/fx/sqli-express/." "$GITHUB_WORKSPACE/"
+          echo "action/" >> "$GITHUB_WORKSPACE/.git/info/exclude"
+          git -C "$GITHUB_WORKSPACE" checkout -q feature
+      - id: review
+        uses: ./action
+        with:
+          base: main
+          upload-sarif: 'false'
+          comment: 'false'
+          offline: 'true'
+      - name: The seeded SQL injection is reported as evidence and nothing blocks
+        env:
+          FINDINGS: ${{ steps.review.outputs.findings }}
+          BLOCKING: ${{ steps.review.outputs.blocking }}
+        run: |
+          set -eu
+          test "$BLOCKING" = "false"
+          jq -e '.findings[] | select(.cwe[0] == "CWE-89" and .location.path == "src/routes/users.js" and .status == "needs-evidence")' "$FINDINGS"
+          jq -e '.runs[0].results | length >= 1' "$GITHUB_WORKSPACE/.abliterate/results.sarif"

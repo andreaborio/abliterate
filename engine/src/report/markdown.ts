@@ -40,8 +40,8 @@ export function toMarkdown(report: Report, opts: { failOn?: string; blocking: Fi
     "",
     `Scope: ${report.scope.base ? `\`${report.scope.base}\`…` : ""}${report.scope.head ? `\`${report.scope.head.slice(0, 12)}\`` : "working copy"} · states: ${report.scope.states.join(", ") || "none"}${report.scope.complete ? "" : " · **review incomplete**"}${report.scope.note ? ` · ${report.scope.note}` : ""}`,
   ];
-  if (confirmed.length) out.push("", "## Confirmed", "", ...confirmed.map(block));
-  if (open.length) out.push("", "## Needs evidence (not counted)", "", ...open.map(block));
+  if (confirmed.length) out.push("", "## Confirmed", "", confirmed.map(block).join("\n\n"));
+  if (open.length) out.push("", "## Needs evidence (not counted)", "", open.map(block).join("\n\n"));
   if (old.length) out.push("", "## Pre-existing (not introduced here)", "", ...old.map((f) => `- ${f.severity} · ${f.cwe.join(", ")} · ${f.title} · ${loc(f)}`));
   out.push("", "<sub>Findings are confirmed by tracing the code path; candidates the engine raised and the review disproved are not listed.</sub>");
   return out.join("\n") + "\n";

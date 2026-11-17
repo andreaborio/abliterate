@@ -6,6 +6,8 @@ node_modules/
 .DS_Store
 /packages/*/LICENSE
 /packages/*/README.md
+/packages/npm/skills/
+/packages/python/src/abliterate/skills/
 /packages/npm/SKILL.md
 /packages/python/src/abliterate/SKILL.md
 /packages/npm/cli.cjs

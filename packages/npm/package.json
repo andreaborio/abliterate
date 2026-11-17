@@ -1,7 +1,7 @@
 {
   "name": "abliterate",
-  "version": "0.1.0",
-  "description": "A local prompt kit and agent skill for pre-push security reviews.",
+  "version": "0.2.0",
+  "description": "Security review evidence for coding agents: changed-code sinks, attack surface, known-vulnerability reachability (OSV, CISA KEV, EPSS), variant hunting and SARIF.",
   "author": "andreaborio",
   "bin": {
     "abliterate": "cli.cjs"
@@ -12,7 +12,7 @@
   "license": "MIT",
   "files": [
     "cli.cjs",
-    "SKILL.md",
+    "skills/",
     "README.md",
     "LICENSE"
   ],
@@ -23,10 +23,14 @@
   },
   "homepage": "https://github.com/andreaborio/abliterate",
   "keywords": [
+    "security",
+    "code-review",
+    "sast",
+    "sarif",
+    "osv",
     "agent-skill",
-    "security-review",
-    "codex",
-    "claude-code"
+    "claude-code",
+    "codex"
   ],
   "bugs": {
     "url": "https://github.com/andreaborio/abliterate/issues"

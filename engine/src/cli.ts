@@ -1,6 +1,7 @@
 import { prompt, PROMPT_HELP, review, REVIEW_HELP, skill, SKILL_HELP } from "./commands/brief";
 import { scope, SCOPE_HELP, sinks, SINKS_HELP, surface, SURFACE_HELP } from "./commands/evidence";
 import { deps, DEPS_HELP } from "./commands/deps";
+import { draft, DRAFT_HELP } from "./commands/draft";
 import { hook, HOOK_HELP } from "./commands/hook";
 import { report, REPORT_HELP } from "./commands/report";
 import { variants, VARIANTS_HELP } from "./commands/variants";
@@ -15,6 +16,7 @@ const commands: Record<string, Command> = {
   deps: { help: DEPS_HELP, booleans: ["offline", "changed", "inventory"], run: deps },
   variants: { help: VARIANTS_HELP, booleans: ["history", "offline"], run: variants },
   report: { help: REPORT_HELP, booleans: ["include-unconfirmed"], run: report },
+  draft: { help: DRAFT_HELP, run: draft },
   hook: { help: HOOK_HELP, booleans: ["force"], run: hook },
   review: { help: REVIEW_HELP, run: review },
   prompt: { help: PROMPT_HELP, run: prompt },
@@ -35,7 +37,7 @@ async function main(argv: string[]): Promise<number> {
   if (name === "--version") { process.stdout.write(VERSION + "\n"); return EXIT.ok; }
   const cmd = commands[name];
   if (!cmd) throw new UsageError(`unknown command "${name}"`);
-  if (rest.includes("--help") || rest.includes("-h")) { process.stdout.write(cmd.help + "\n"); return EXIT.ok; }
+  if (rest[0] === "--help" || rest[0] === "-h") { process.stdout.write(cmd.help + "\n"); return EXIT.ok; }
   return cmd.run(parseArgs(rest, cmd.booleans), process.cwd());
 }
 

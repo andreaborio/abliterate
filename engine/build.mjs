@@ -1,10 +1,15 @@
 // Bundles the engine into one dependency-free CommonJS file for the npm package.
 import { build } from "esbuild";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+// Resolve everything from this file so the build works from any working directory (CI, the Action).
+const here = fileURLToPath(new URL(".", import.meta.url));
 
 const pkg = JSON.parse(readFileSync(new URL("../packages/npm/package.json", import.meta.url)));
 
 await build({
+  absWorkingDir: here,
   entryPoints: ["src/cli.ts"],
   outfile: "../packages/npm/cli.cjs",
   bundle: true,
