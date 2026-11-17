@@ -1,7 +1,16 @@
 # Contributing
 
-Change the canonical skill in `skills/abliterate-review/SKILL.md`. Edit both thin adapters when changing CLI behavior. Keep generated copies and archives out of Git. When introducing or renaming a topic, update both help texts, the contract test and the catalog in the README.
+- **Skills** (`skills/`) are the single source of truth: the plugin, the npm package and the PyPI package ship them unchanged. Keep `SKILL.md` under 500 lines and reference files one level deep.
+- **Engine** (`engine/src`, TypeScript): keep it read-only on repositories, dependency-free at runtime, and offline except `deps` and `variants --from`.
+  - **New rules:** add a seeded vulnerability *and* a guarded twin to `evals/make_fixtures.py`, or a positive and a negative line to `engine/test/rules.test.mjs`.
+  - **Before every change:** run `npm test --prefix engine` and keep zero hits on guarded twins.
+- **CLI parity:** `skill`, `prompt` and `review` must produce byte-identical output from npm and PyPI. `verification/check_release.py` checks the installed archives.
+- **Behavioral changes to the skill:** add or update a case under `evals/cases/` with graders, and compare with the no-plugin baseline using `claude plugin eval .`.
 
-For a behavioral change, show a small synthetic case, the decision the reviewer made before, and what it should do instead. Include a counterexample where a protective control is already effective. Follow the [verification instructions](verification/README.md); distinguish installed-package checks from actual agent behavior.
+For maintainers, the release steps:
 
-For maintainers: align versions, build from a clean checkout and run the release checks in the README. Attach the three generated archives and SHA256SUMS to the matching GitHub tag. npm releases use the verified tarball and require a publisher logged in as andreaborio. PyPI uses a pending or trusted publisher for this repository, workflow `publish-pypi.yml`, environment `pypi`. Dispatch on the release tag after attaching the assets. Inspect the registry metadata before announcing availability.
+1. Align the versions in `packages/npm/package.json`, `packages/python/pyproject.toml` and both `plugin.json` files.
+2. From a clean checkout, run `python3 build.py && python3 verification/check_release.py`.
+3. Attach the archives and `SHA256SUMS` to the matching GitHub tag.
+4. npm: the publisher must be logged in as `andreaborio`.
+5. PyPI: dispatch `publish-pypi.yml` on the tag.

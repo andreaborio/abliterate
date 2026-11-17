@@ -1,82 +1,138 @@
 <picture>
   <source media="(max-width: 600px)" srcset="docs/assets/cover-compact.svg">
-  <img src="docs/assets/cover.svg" width="960" alt="abliterate/skill — pre-push security review for Codex and Claude Code">
+  <img src="docs/assets/cover.svg" width="960" alt="abliterate — security review of source code before you push and on every pull request">
 </picture>
 
-# Catch the bug before the push.
+# Catch the vulnerability before the push.
 
-Abliterate helps your coding agent answer one question: **what security rule does this change break?** It follows the code to the actual permission check, separates proof from suspicion, and proposes a test that would catch the regression.
+abliterate helps your coding agent answer one question: **what security rule does this change break?**
 
-[Read the skill](skills/abliterate-review/SKILL.md) · [Browse the eight prompts](#choose-a-prompt) · [Download v0.1.0](https://github.com/andreaborio/abliterate/releases/tag/v0.1.0)
+It has three parts that work together:
+
+- **A skill** for Claude Code and Codex. It traces attacker-controlled data from the entry point to the sink, finds the guard on that exact path, and tries to disprove every suspicion before reporting it.
+- **An engine**, the `abliterate` CLI. It collects evidence the agent can trust: which states changed, attack surface, candidate sinks, vulnerable dependencies with reachability, and variants of past fixes.
+- **A git integration**: a pre-push hook and a GitHub Action that report every pull request to code scanning and in one PR comment.
+
+There is no abliterate model or service. The reasoning runs in your agent, with its permissions. The engine runs locally and is read-only.
 
 ## Install
 
-From your project, using the [Agent Skills CLI](https://github.com/vercel-labs/skills):
+**Claude Code** (plugin: both skills and a read-only reviewer agent)
 
-```sh
-npx skills add andreaborio/abliterate \
-  --skill abliterate-review
+```text
+/plugin marketplace add andreaborio/abliterate
+/plugin install abliterate@abliterate
 ```
 
-Select your agent and project scope. For an installation without a package manager, download the [versioned skill file](https://github.com/andreaborio/abliterate/blob/v0.1.0/skills/abliterate-review/SKILL.md) and save it as `.agents/skills/abliterate-review/SKILL.md` for Codex or `.claude/skills/abliterate-review/SKILL.md` for Claude Code. Open a new session in that project.
+**Codex**
+
+```sh
+codex plugin marketplace add andreaborio/abliterate
+```
+
+**Any agent with Agent Skills**
+
+```sh
+npx skills add andreaborio/abliterate --skill abliterate-review --skill abliterate-variants
+```
+
+**The engine** needs no install: `npx -y abliterate@0.2.0 --help`.
 
 ## Try a review
 
-> Use abliterate-review before I push to main. Tell me what is in the commits, which local fixes are still uncommitted, and what test would catch each confirmed regression. Leave my files unchanged.
+> Review what this branch would push against main for security problems.
 
-For a fix: **“Fix the confirmed directory disclosure. Test the private field is absent and the display name is still visible.”** For a feature that does not exist yet: **“Design the access rules for a shared invoice. Which roles and tests do we need before writing the endpoint?”**
+The skill runs the engine, traces each lead, and reports only what it could demonstrate. Each confirmed finding comes with:
+- the `file:line`;
+- the actor;
+- the broken rule;
+- the effect;
+- a fix;
+- the test that fails before the fix.
 
-## A review you can reproduce
+Suspicions it could not settle are listed separately, with the one fact that would decide them.
 
-<picture>
-  <source media="(max-width: 600px)" srcset="docs/assets/receipt-compact.svg">
-  <img src="docs/assets/review-receipt.svg" width="850" alt="Example review receipt. The commit exposes salary, the index exposes private email, and the working tree exposes neither.">
-</picture>
+Other requests:
 
-A public profile promises to return only a display name. On disk, it does. But pushing the current commit still sends a serializer that includes salary; committing the current index trades that leak for a private email. Checking only the file open in your editor misses both.
+- **Check whether a fix was complete:** "Is CVE-2021-23337 reachable here?" or "Did the XSS fix in a1b2c3 miss similar code?"
+- **Design mode:** "Design the access rules for a shared invoice before I write the endpoint."
+- **Fix mode:** "Fix the confirmed IDOR and add the regression test."
 
-The proposed test asserts the **whole returned object**, not just that the name exists. The fixture proves a serializer regression; it has no HTTP endpoint to establish an exposure in production. [Run the snapshot case yourself →](verification/README.md)
+## The engine
 
-## Choose a prompt
+```sh
+npx -y abliterate@0.2.0 <command>
+```
 
-| Topic | Question the review answers |
+| Command | Output |
 | --- | --- |
-| `design` | What rule should hold, where is it enforced, and how would we test it? |
-| `review` | What regression is in the actual push, the index or the working tree? |
-| `access` | Which actors may act on this specific resource, including legitimate collaborators? |
-| `inputs` | Did an existing or new value reach a different execution or rendering context? |
-| `privacy` | Does a private field cross into a response, cache, error message or log? |
-| `state` | Does the invariant survive retries, revocation or work handed to a job? |
-| `delivery` | Does a dependency or CI change execute with more trust than intended? |
-| `fix` | Does a focused test fail before the fix and pass afterward, without breaking allowed use? |
+| `scope --base main` | Verified review states: commits since the merge-base, staged, unstaged, untracked |
+| `surface --changed` | Routes, server actions, jobs, webhooks and CI triggers in changed files, with the auth names on each |
+| `sinks --changed` | Candidate vulnerable lines by CWE, marked with the snapshot that introduced them |
+| `deps --changed` | Dependencies the change added or bumped. Each comes with its OSV advisories, the CISA KEV flag, EPSS, and whether the vulnerable function is actually called |
+| `variants --history` | Patterns that past security fixes in the repo removed, still present elsewhere |
+| `variants --from CVE-…` | The same, seeded from an advisory, a fixing commit or a GitHub commit URL |
+| `report --in findings.json` | Validates the agent's findings and writes SARIF 2.1.0 and markdown |
+| `hook install` | A pre-push hook with the fast checks; non-blocking unless `ABLITERATE_BLOCK=1` |
 
-## Terminal packages
+Candidates are leads, not findings. The rules recognise common guards (parameterised queries, allowlists, `safe_join`, sanitisers) and stay quiet when one sits on the same path. Secrets are never printed.
 
-Both distributions install the same `abliterate` command. Choose one.
+### What leaves your machine
 
-```sh
-npm install --global abliterate@0.1.0
-# For Python, run in your virtual environment
-python -m pip install abliterate==0.1.0
+- **`deps`** sends package names and versions to `api.osv.dev`, and CVE ids to `api.first.org` (EPSS). It downloads the CISA KEV feed.
+- **`variants --from`** fetches a public advisory or GitHub patch.
+- **Nothing else** contacts the network. Source code, file paths and repository names are never sent.
+- **Offline use:** `--offline` uses only the local cache (`~/.cache/abliterate`), and `deps --inventory` lists packages with no network at all.
+
+## GitHub Action
+
+```yaml
+name: abliterate
+on: pull_request
+permissions:
+  contents: read
+  pull-requests: write     # the PR comment
+  security-events: write   # code scanning upload
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: andreaborio/abliterate@v0.2.0
+        with:
+          agent: claude                       # none | claude | codex
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          fail-on: high
 ```
 
-```sh
-abliterate prompt
-abliterate review --since main
-abliterate prompt access
-```
+**What the job does:**
+- Engine evidence is collected on every PR, with no key.
+- With an `agent`, Claude Code or Codex reviews the PR read-only, following the skill, and writes findings that the engine validates.
+- Results go to code scanning as SARIF, and one PR comment is created and then updated.
 
-Package pages and release checksums are available on [npm](https://www.npmjs.com/package/abliterate), [PyPI](https://pypi.org/project/abliterate/0.1.0/) and [GitHub Releases](https://github.com/andreaborio/abliterate/releases/tag/v0.1.0).
+**When the check fails:**
+- `fail-on` fails the check only on **confirmed** findings introduced by the PR.
+- Without an agent nothing is confirmed. Engine candidates appear as notes, and `block-on-candidates: true` turns high-confidence candidates into a failing check.
 
-Paste the brief into your agent. The CLI itself **prints instructions**: it does not scan the repo, change files, contact a model or gate CI. The agent needs access to the sources; its own data and execution policies apply. The supplied prompts are in Italian and the agent replies in your language.
+**Safety:**
+- The workflow uses `pull_request`, never `pull_request_target`.
+- The agent step is skipped for forks, which have no secrets.
+- The agent may not run the PR's code.
+
+## How it is verified
+
+- **`engine/` tests** (`npm test`) run every rule against 14 synthetic repositories (`evals/make_fixtures.py`). Each repository seeds one vulnerability next to a guarded twin that must not be flagged. The tests also check that:
+  - SARIF validates against the official OASIS schema;
+  - OSV, KEV and EPSS lookups replay recorded responses.
+- **Release check** (`python3 build.py && python3 verification/check_release.py`): installs the built npm and PyPI packages and checks that they behave identically.
+- **Agent evals** (`claude plugin eval .`): run the plugin on cases under `evals/cases/`, against a no-plugin baseline.
+
+Engine results are deterministic. Agent results are measured, not guaranteed.
 
 ## Development
 
-The source of truth is [SKILL.md](skills/abliterate-review/SKILL.md). Small Node and Python entry points in [packages](packages) expose that same text without runtime dependencies. To build and check in a fresh clone, use Python 3.11+, Node 18+, npm, Git and uv 0.11.16:
+The skills in `skills/` are the source of truth, shared by the plugin, the npm package and the PyPI package. The engine is TypeScript in `engine/src`, bundled into one dependency-free file. See [CONTRIBUTING](CONTRIBUTING.md) and the [security policy](SECURITY.md).
 
-```sh
-python3 build.py
-python3 verification/check_release.py
-```
-
-The checks install both **built packages** in temporary directories and compare their output. [Behavioral cases](verification/README.md) test the reviewer’s decisions separately. See [contributing](CONTRIBUTING.md) or the [security policy](SECURITY.md).
+MIT license.

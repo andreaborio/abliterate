@@ -1,12 +1,18 @@
 # abliterate
 
-Eight prompts for a security review before you push. The CLI prints a brief for your coding agent; it never reads your repository, runs its code, or sends it anywhere. The agent performs the review under its own permissions. Prompts are in Italian; the skill asks the agent to reply in your language.
+Evidence for a security review of source code, for coding agents and CI. Read-only on your repository.
 
 ```sh
-abliterate prompt                    # list topics
-abliterate review --since main       # print a pre-push review brief
-abliterate prompt privacy            # focus on response fields, caches and logs
-abliterate skill                     # export the complete SKILL.md
+npx -y abliterate@0.2.0 sinks --changed --base main     # candidate vulnerable lines the change introduced
+npx -y abliterate@0.2.0 deps --changed --base main      # new dependencies: OSV advisories, CISA KEV, EPSS, reachability
+npx -y abliterate@0.2.0 variants --history --base main  # patterns earlier security fixes removed, still present
+npx -y abliterate@0.2.0 report --in findings.json --sarif out.sarif
+npx -y abliterate@0.2.0 hook install                    # pre-push hook, non-blocking by default
+npx -y abliterate@0.2.0 skill                           # print the abliterate-review skill
 ```
 
-Pick **either** the Node or Python distribution: both install the same command. Use the output from your coding agent in the repository you want reviewed. For direct skill installation, examples and reproducible tests, see [andreaborio/abliterate](https://github.com/andreaborio/abliterate). MIT license.
+The commands produce leads. Your agent confirms or disproves them using the bundled `abliterate-review` and `abliterate-variants` skills.
+
+Only `deps` and `variants --from` use the network: they send package names, versions and advisory ids, never source code. `--offline` uses the cache only.
+
+The PyPI package contains the skills and prompts (`skill`, `prompt`, `review`); the engine is npm only. Plugin for Claude Code and Codex, GitHub Action and docs: [andreaborio/abliterate](https://github.com/andreaborio/abliterate). MIT license.
