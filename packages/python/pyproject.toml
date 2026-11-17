@@ -1,0 +1,20 @@
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12"]
+build-backend = "uv_build"
+
+[project]
+name = "abliterate"
+version = "0.1.0"
+description = "A local prompt kit and agent skill for pre-push security reviews."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "andreaborio" }]
+requires-python = ">=3.9"
+
+[project.scripts]
+abliterate = "abliterate.cli:main"
+
+[project.urls]
+Repository = "https://github.com/andreaborio/abliterate"
+Issues = "https://github.com/andreaborio/abliterate/issues"

@@ -1,0 +1,10 @@
+dist/
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+.DS_Store
+/packages/*/LICENSE
+/packages/*/README.md
+/packages/npm/SKILL.md
+/packages/python/src/abliterate/SKILL.md
