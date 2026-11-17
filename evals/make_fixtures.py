@@ -40,7 +40,7 @@ def line_of(repo, path, snippet):
 
 
 FAKE_STRIPE = "sk_" + "live_" + "51Hx" + "Fixture0nly" + "NotARealKey000"
-FAKE_AWS_ID = "AKIA" + "FIXTURE" + "ONLY0000"
+FAKE_AWS_ID = "AKIA" + "FIXTURE" + "ONLY00000"
 
 FIXTURES = [
     {
