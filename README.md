@@ -52,12 +52,12 @@ The proposed test asserts the **whole returned object**, not just that the name 
 
 ## Terminal packages
 
-The [GitHub release](https://github.com/andreaborio/abliterate/releases/tag/v0.1.0) contains the npm archive, Python wheel, source distribution and checksums. Install **one** of the two CLIs: they expose the same command. With the relevant release file in your current folder:
+Both distributions install the same `abliterate` command. Choose one.
 
 ```sh
-npm install --global ./abliterate-0.1.0.tgz
-# or, in a Python environment:
-python -m pip install ./abliterate-0.1.0-py3-none-any.whl
+npm install --global abliterate@0.1.0
+# For Python, run in your virtual environment
+python -m pip install abliterate==0.1.0
 ```
 
 ```sh
@@ -65,6 +65,8 @@ abliterate prompt
 abliterate review --since main
 abliterate prompt access
 ```
+
+Package pages and release checksums are available on [npm](https://www.npmjs.com/package/abliterate), [PyPI](https://pypi.org/project/abliterate/0.1.0/) and [GitHub Releases](https://github.com/andreaborio/abliterate/releases/tag/v0.1.0).
 
 Paste the brief into your agent. The CLI itself **prints instructions**: it does not scan the repo, change files, contact a model or gate CI. The agent needs access to the sources; its own data and execution policies apply. The supplied prompts are in Italian and the agent replies in your language.
 
