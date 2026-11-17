@@ -4,7 +4,7 @@ Focused requests for the agent. `abliterate prompt TOPIC` prints one; `abliterat
 
 ### review — Before the push
 
-Use the abliterate-review skill. Review what this branch would push against {base}, then separately what is staged and what is only on disk. Run the engine for evidence, trace every candidate and every changed trust boundary, and report only demonstrated regressions in order of impact, the decisive uncertainties, and the test that would catch each regression. Check dependencies the change added and past security fixes for unfixed siblings. Do not modify files.
+Use the abliterate-review skill; if it is not installed, run `npx -y abliterate@0.2.0 skill`, follow what it prints, and use `npx -y abliterate@0.2.0` wherever it says `abliterate`. Review what this branch would push against {base}, then separately what is staged and what is only on disk. Run the engine for evidence, trace every candidate and every changed trust boundary, and report only demonstrated regressions in order of impact, the decisive uncertainties, and the test that would catch each regression. Check dependencies the change added and past security fixes for unfixed siblings. Do not modify files.
 
 ### design — Before writing the code
 

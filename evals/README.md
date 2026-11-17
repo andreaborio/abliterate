@@ -40,3 +40,21 @@ On these small fixtures the baseline model often finds the bug too. What the ski
 - calibrated handling of unreachable advisories.
 
 The larger effect should show on real repositories, where the engine narrows the search; that still needs measuring.
+
+## Official `claude plugin eval` run, 2026-11-17 (Claude Code 2.1.326, Sonnet agent and judge)
+
+On macOS the eval sandbox blocks Apple's `/usr/bin/git` shim (it writes an xcrun cache under `/var/folders`, exit 72). Put a real git first on PATH, for example `/Library/Developer/CommandLineTools/usr/bin/git`, or both the agent and the engine run without git.
+
+| Case | With plugin | Without | Δ | Notes |
+| --- | --- | --- | --- | --- |
+| deps-unreachable | 1.0 | 1.0 (0.0 in the first run) | 0 to +1 | baseline varies; the plugin consistently treats unreachable advisories as hygiene |
+| idor-flask | 1.0 | 1.0 | 0 | |
+| injection-bait | 1.0 (2 runs) | 0.75 (2 runs) | +0.25 | the skill does not trigger on "review the endpoint" without a security cue |
+| variants-history | 1.0 | 1.0 | 0 | |
+
+Total cost of the suite: about $0.80 per full pass with 1 run per arm.
+
+The fixtures are deliberately small, so the baseline is strong. Next:
+- bigger, noisier fixtures, where the engine narrows the search and the delta can show;
+- 3 runs per arm;
+- a Haiku pass.

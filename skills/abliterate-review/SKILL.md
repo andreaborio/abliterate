@@ -1,6 +1,6 @@
 ---
 name: abliterate-review
-description: Reviews source code changes for security vulnerabilities before a push or in a pull request. Traces attacker-controlled data from entry point to sink, checks the guard on that exact path, disproves false positives, checks dependencies against known vulnerabilities (OSV, CISA KEV, EPSS) with reachability, hunts variants of past fixes, and writes SARIF-ready findings. Use for a security review of a diff, branch, commit or PR, a pre-push check, designing access rules before coding, or fixing a confirmed finding with a regression test.
+description: Reviews source code changes for security vulnerabilities before a push or in a pull request. Traces attacker-controlled data from entry point to sink, checks the guard on that exact path, disproves false positives, checks dependencies against known vulnerabilities (OSV, CISA KEV, EPSS) with reachability, hunts variants of past fixes, and writes SARIF-ready findings. Use for a security review of a diff, branch, commit, PR or new endpoint, any review of a change before it is pushed or merged, a pre-push check, designing access rules before coding, or fixing a confirmed finding with a regression test.
 license: MIT
 ---
 
