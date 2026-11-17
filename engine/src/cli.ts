@@ -1,5 +1,7 @@
 import { scope, SCOPE_HELP, sinks, SINKS_HELP, surface, SURFACE_HELP } from "./commands/evidence";
+import { deps, DEPS_HELP } from "./commands/deps";
 import { report, REPORT_HELP } from "./commands/report";
+import { variants, VARIANTS_HELP } from "./commands/variants";
 import { EXIT, parseArgs, UsageError, VERSION } from "./util";
 
 type Command = { help: string; booleans?: string[]; run: (flags: ReturnType<typeof parseArgs>, cwd: string) => number | Promise<number> };
@@ -8,6 +10,8 @@ const commands: Record<string, Command> = {
   scope: { help: SCOPE_HELP, run: scope },
   surface: { help: SURFACE_HELP, booleans: ["changed"], run: surface },
   sinks: { help: SINKS_HELP, booleans: ["changed", "include-guarded"], run: sinks },
+  deps: { help: DEPS_HELP, booleans: ["offline", "changed", "inventory"], run: deps },
+  variants: { help: VARIANTS_HELP, booleans: ["history", "offline"], run: variants },
   report: { help: REPORT_HELP, booleans: ["include-unconfirmed"], run: report },
 };
 

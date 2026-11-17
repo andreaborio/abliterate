@@ -74,3 +74,14 @@ test("comments cannot hide or add candidates", () => {
   const bait = sinks("injection-bait").candidates;
   assert.ok(bait.some((c) => c.cwe === "CWE-89"));
 });
+
+test("variants --history learns the past XSS fix and finds both unfixed siblings", () => {
+  const r = spawnSync(process.execPath, [CLI, "variants", "--history", "--base", "main"], { cwd: join(root, "variants-history"), encoding: "utf8" });
+  assert.equal(r.status, 0, r.stderr);
+  const out = JSON.parse(r.stdout);
+  assert.ok(out.seeds.some((s) => s.rule === "js.xss.html-template" && s.guards.includes("escape") && !s.guards.includes("require")));
+  const at = (p) => out.variants.find((v) => v.path === p);
+  assert.equal(at("src/mentions.js")?.changedIn, "push");
+  assert.equal(at("src/render.js")?.changedIn, null);
+  assert.ok(!out.variants.some((v) => v.path === "src/render.js" && v.line === 4), "the fixed renderComment is not a variant");
+});
