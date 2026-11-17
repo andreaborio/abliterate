@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "abliterate",
+  "description": "Security review skills for coding agents.",
+  "owner": { "name": "andreaborio", "url": "https://github.com/andreaborio" },
+  "plugins": [
+    {
+      "name": "abliterate",
+      "source": "./",
+      "description": "Pre-push and PR security review: source-to-sink tracing, known-vulnerability reachability, variant hunting, SARIF output.",
+      "category": "security",
+      "tags": ["security", "code-review", "sarif"]
+    }
+  ]
+}

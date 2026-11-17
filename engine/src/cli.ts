@@ -1,6 +1,7 @@
 import { prompt, PROMPT_HELP, review, REVIEW_HELP, skill, SKILL_HELP } from "./commands/brief";
 import { scope, SCOPE_HELP, sinks, SINKS_HELP, surface, SURFACE_HELP } from "./commands/evidence";
 import { deps, DEPS_HELP } from "./commands/deps";
+import { hook, HOOK_HELP } from "./commands/hook";
 import { report, REPORT_HELP } from "./commands/report";
 import { variants, VARIANTS_HELP } from "./commands/variants";
 import { EXIT, parseArgs, UsageError, VERSION } from "./util";
@@ -14,6 +15,7 @@ const commands: Record<string, Command> = {
   deps: { help: DEPS_HELP, booleans: ["offline", "changed", "inventory"], run: deps },
   variants: { help: VARIANTS_HELP, booleans: ["history", "offline"], run: variants },
   report: { help: REPORT_HELP, booleans: ["include-unconfirmed"], run: report },
+  hook: { help: HOOK_HELP, booleans: ["force"], run: hook },
   review: { help: REVIEW_HELP, run: review },
   prompt: { help: PROMPT_HELP, run: prompt },
   skill: { help: SKILL_HELP, run: skill },
