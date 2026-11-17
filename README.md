@@ -1,15 +1,21 @@
-# Abliterate
+<picture>
+  <source media="(max-width: 600px)" srcset="docs/assets/cover-compact.svg">
+  <img src="docs/assets/cover.svg" width="960" alt="abliterate/skill — pre-push security review for Codex and Claude Code">
+</picture>
 
-**A security review before you push, inside the coding agent you already use.** Abliterate follows a change from the actor who can reach it to the data it exposes or the action it takes. You get findings tied to a file, a line and a Git snapshot, a proposed fix, and a regression test. If a control lives outside the repository, the review says precisely what is unknown.
+# Catch the bug before the push.
 
-[Install](#install) · [Try a review](#try-a-review) · [Prompt catalog](#choose-a-prompt) · [Evaluation cases](verification/README.md) · [MIT](LICENSE)
+Abliterate helps your coding agent answer one question: **what security rule does this change break?** It follows the code to the actual permission check, separates proof from suspicion, and proposes a test that would catch the regression.
+
+[Read the skill](skills/abliterate-review/SKILL.md) · [Browse the eight prompts](#choose-a-prompt) · [Download v0.1.0](https://github.com/andreaborio/abliterate/releases/tag/v0.1.0)
 
 ## Install
 
 From your project, using the [Agent Skills CLI](https://github.com/vercel-labs/skills):
 
 ```sh
-npx skills add andreaborio/abliterate --skill abliterate-review
+npx skills add andreaborio/abliterate \
+  --skill abliterate-review
 ```
 
 Select your agent and project scope. For an installation without a package manager, download the [versioned skill file](https://github.com/andreaborio/abliterate/blob/v0.1.0/skills/abliterate-review/SKILL.md) and save it as `.agents/skills/abliterate-review/SKILL.md` for Codex or `.claude/skills/abliterate-review/SKILL.md` for Claude Code. Open a new session in that project.
@@ -20,7 +26,16 @@ Select your agent and project scope. For an installation without a package manag
 
 For a fix: **“Fix the confirmed directory disclosure. Test the private field is absent and the display name is still visible.”** For a feature that does not exist yet: **“Design the access rules for a shared invoice. Which roles and tests do we need before writing the endpoint?”**
 
-**Example from a synthetic review:** a team directory promises to return a display name. The commit also returns salary. The file on disk looks fixed, but the fix is only staged: pushing now still publishes the affected commit. The review points to the committed serializer and proposes checking the complete returned object. It does not claim an HTTP disclosure without a route that reaches the serializer.
+## A review you can reproduce
+
+<picture>
+  <source media="(max-width: 600px)" srcset="docs/assets/receipt-compact.svg">
+  <img src="docs/assets/review-receipt.svg" width="850" alt="Example review receipt. The commit exposes salary, the index exposes private email, and the working tree exposes neither.">
+</picture>
+
+A public profile promises to return only a display name. On disk, it does. But pushing the current commit still sends a serializer that includes salary; committing the current index trades that leak for a private email. Checking only the file open in your editor misses both.
+
+The proposed test asserts the **whole returned object**, not just that the name exists. The fixture proves a serializer regression; it has no HTTP endpoint to establish an exposure in production. [Run the snapshot case yourself →](verification/README.md)
 
 ## Choose a prompt
 

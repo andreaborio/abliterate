@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="430" height="199" viewBox="0 0 430 199" role="img" aria-label="Synthetic fixture. HEAD: salary exposed; index: private email exposed; working tree: name only.">
+  <rect width="430" height="199" rx="6" fill="#121515"/>
+  <rect x="17" y="17" width="9" height="9" rx="1.5" fill="#ffb21e"/>
+  <g font-family="ui-monospace,Menlo,Consolas,monospace">
+    <text x="35" y="27" fill="#ffb21e" font-size="14">TEAM DIRECTORY</text><text x="410" y="27" text-anchor="end" fill="#ccd1cb" font-size="13">SYNTHETIC FIXTURE</text>
+    <rect x="13" y="44" width="404" height="141" fill="#eeede5"/>
+    <g fill="#202423" font-size="16">
+      <text x="26" y="71" font-weight="bold">SNAPSHOT RECEIPT</text>
+      <path d="M26 84h378" stroke="#8a8e88" stroke-dasharray="4 4"/>
+      <text x="26" y="109">HEAD</text><text x="159" y="109">salary exposed</text>
+      <text x="26" y="139">INDEX</text><text x="159" y="139">private email exposed</text>
+      <text x="26" y="169">WORKING TREE</text><text x="159" y="169">name only</text>
+    </g>
+  </g>
+</svg>

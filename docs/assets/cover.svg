@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="214" viewBox="0 0 960 214" role="img" aria-labelledby="title desc">
+  <title id="title">abliterate/skill</title>
+  <desc id="desc">Abliterate's circle-slash mark and the amber skill channel of its instrument panel.</desc>
+  <rect width="960" height="214" rx="9" fill="#101212"/>
+  <rect x="1" y="1" width="958" height="212" rx="8" fill="none" stroke="#343939"/>
+  <g fill="#989e9c"><circle cx="16" cy="16" r="2"/><circle cx="944" cy="16" r="2"/><circle cx="16" cy="198" r="2"/><circle cx="944" cy="198" r="2"/></g>
+  <g transform="translate(36 51) scale(3.2)" fill="none" stroke="#ededeb" stroke-width="2.2">
+    <circle cx="12" cy="12" r="8.25"/><path d="M6.4 17.6 17.6 6.4" stroke-linecap="round"/>
+  </g>
+  <text x="128" y="121" font-family="Helvetica Neue,Arial,sans-serif" font-size="86" font-weight="650" letter-spacing="-4" fill="#ededeb">abliterate<tspan fill="#ffb21e">/skill</tspan></text>
+  <g stroke="#464b49" stroke-width="3" stroke-linecap="round">
+    <path d="M805 73h106 M805 82h106 M805 91h106 M805 100h106 M805 109h106"/>
+  </g>
+  <path d="M35 148h890" stroke="#383d3b"/>
+  <g font-family="ui-monospace,Menlo,Consolas,monospace" font-size="16" letter-spacing="1" fill="#b4bab6">
+    <rect x="44" y="170" width="10" height="10" rx="2" fill="#ffb21e"/>
+    <text x="69" y="181">PRE-PUSH SECURITY REVIEW</text>
+    <text x="914" y="181" text-anchor="end">CODEX / CLAUDE CODE</text>
+  </g>
+</svg>

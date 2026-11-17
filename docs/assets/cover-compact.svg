@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="430" height="128" viewBox="0 0 430 128" role="img" aria-label="abliterate/skill. Pre-push security review.">
+  <rect width="430" height="128" rx="6" fill="#101212"/>
+  <g transform="translate(14 19) scale(2.2)" fill="none" stroke="#ededeb" stroke-width="2.2"><circle cx="12" cy="12" r="8.25"/><path d="M6.4 17.6 17.6 6.4" stroke-linecap="round"/></g>
+  <text x="72" y="65" font-family="Helvetica Neue,Arial,sans-serif" font-size="51" font-weight="650" letter-spacing="-2.2" fill="#ededeb">abliterate<tspan fill="#ffb21e">/skill</tspan></text>
+  <path d="M21 85h388" stroke="#383d3b"/>
+  <rect x="22" y="102" width="9" height="9" rx="1.5" fill="#ffb21e"/>
+  <text x="42" y="112" font-family="ui-monospace,Menlo,Consolas,monospace" font-size="14" fill="#bcc2be">PRE-PUSH SECURITY REVIEW</text>
+</svg>
