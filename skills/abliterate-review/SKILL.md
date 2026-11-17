@@ -67,6 +67,7 @@ Review progress:
 
 - Find the policy actually applied by middleware, service, database or framework, and verify it is wired to **this** path with the right identity. A shared guard is still effective. A function's name proves nothing.
 - Do not infer the presence or absence of a protection that depends on configuration you cannot see: make it `needs-evidence` and name the one fact that would decide it.
+- Evidence of attacker control can come from the repository itself, not only from a visible caller. A past security fix that escaped, bound or validated the same kind of data, or a sibling path that guards it, establishes the threat model. Code that handles that data the same way without the guard is `confirmed`. Do not downgrade it to `needs-evidence` because the caller is out of view, and classify identical patterns consistently.
 - A disproved suspicion is not a finding. Do not list it.
 
 **6. Known vulnerabilities.** Follow [known-vulns.md](reference/known-vulns.md):
