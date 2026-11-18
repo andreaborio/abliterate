@@ -20,6 +20,7 @@ if (MANIFEST["name"], VERSION, MANIFEST["license"]) != (PYPROJECT["name"], PYPRO
 canonical = (ROOT / "skills/abliterate-review/SKILL.md").read_bytes()
 variants_skill = (ROOT / "skills/abliterate-variants/SKILL.md").read_bytes()
 prompts_md = (ROOT / "skills/abliterate-review/reference/prompts.md").read_text(encoding="utf-8")
+scope_text = (ROOT / "skills/abliterate-review/reference/review-scope.md").read_text(encoding="utf-8").strip()
 license_text = (ROOT / "LICENSE").read_bytes()
 npm = DIST / f"abliterate-{VERSION}.tgz"
 whl = DIST / f"abliterate-{VERSION}-py3-none-any.whl"
@@ -70,6 +71,8 @@ with tempfile.TemporaryDirectory() as directory:
             require(a.stdout.decode().strip() == VERSION, "Archive version mismatch")
         if args == ["prompt"]:
             require(len(a.stdout.splitlines()) == 1+len(topics), "Catalog should only list topics")
+        if code == 0 and (args[0] == "review" or args[0] == "prompt" and len(args) == 2):
+            require(scope_text and a.stdout.decode().startswith(scope_text + "\n\n"), f"Missing review scope: {args}")
         if args[:1] == ["prompt"] and len(args)==2 and code==0:
             chosen = prompts_md.split("### "+args[1]+" — ")[1].split("\n",1)[1].split("\n### ")[0].strip()
             first_sentence = chosen.split(". ")[0]

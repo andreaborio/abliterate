@@ -4,7 +4,7 @@ Focused requests for the agent. `abliterate prompt TOPIC` prints one; `abliterat
 
 ### review — Before the push
 
-Use the abliterate-review skill; if it is not installed, run `npx -y abliterate@latest skill`, follow what it prints, and use `npx -y abliterate@latest` wherever it says `abliterate`. Review what this branch would push against {base}, then separately what is staged and what is only on disk. Run the engine for evidence, trace every candidate and every changed trust boundary, and report only demonstrated regressions in order of impact, the decisive uncertainties, and the test that would catch each regression. Check dependencies the change added and past security fixes for unfixed siblings. Do not modify files.
+Use the abliterate-review skill. If the skill is missing, read it with `abliterate skill` or use `npx -y abliterate@latest skill` when registry access is available. Review what this branch would push against {base}, then separately what is staged and what is only on disk. Run the engine for evidence when available, trace each lead in source, and report demonstrated regressions in order of impact. Include the evidence still needed and the test that would catch each regression. Check dependencies the change added and earlier fixes for similar code. Return the review in chat and leave files unchanged.
 
 ### design — Before writing the code
 
@@ -12,11 +12,11 @@ Use the abliterate-review skill in design mode. For the proposed feature identif
 
 ### access — Authorization and isolation
 
-Use the abliterate-review skill. Rebuild the actor × action × resource matrix from the policy actually applied. Follow identity from the entry point to the query or job. For shared resources consider the legitimate collaborator, not only the owner. Pick one allowed and one excluded actor and verify the outcome, and for a denied write, the absence of side effects. Keep authentication and authorization apart.
+Use the abliterate-review skill. Rebuild the actor × action × resource matrix from the policy actually applied. Follow identity from the entry point to the query or job. Include legitimate collaborators on shared resources. Read the authorization check for one allowed and one excluded actor. Propose assertions for the allowed result and for unchanged state after a denied write.
 
 ### inputs — From input to point of use
 
-Use the abliterate-review skill. Follow each field whose path changed, even if it existed before. Verify the treatment in its final context: bound query parameters, the renderer's escaping, an explicit field selection, an argument list instead of a shell string. Show where a value can cross the boundary untreated. Test with an ordinary but meaningful value, such as a surname with an apostrophe, and a type that is not allowed.
+Use the abliterate-review skill. Follow each field whose path changed, even if it existed before. Inspect how the final consumer handles it, for example through bound query parameters, renderer escaping, explicit field selection or an argument list. Cite the line that handles the value and propose test cases for a surname with an apostrophe and a disallowed type where relevant.
 
 ### privacy — Exposed data and secrets
 

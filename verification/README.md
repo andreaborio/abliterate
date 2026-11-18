@@ -2,7 +2,7 @@
 
 Engine behaviour is tested in `engine/test` against the fixtures from `evals/make_fixtures.py`, and the skill's behaviour with `claude plugin eval .` on `evals/cases/`. This page covers the release packaging check and the original v0.1 behavioral cases, which still apply.
 
-The packaging check runs both installed CLIs in a temporary directory outside Git, requires identical output for each topic and supported review invocation, and verifies packaged skill and license contents. It also checks invalid inputs, version parity and the integrity manifest. Run it after the build; it does not call an AI model.
+The packaging check runs both installed CLIs in a temporary directory outside Git. It checks that every topic and review brief starts with the shared scope for internal review and that both adapters emit identical text. It also verifies the packaged skills, license, invalid inputs, version parity and integrity manifest. Run it after the build. It runs without an AI model.
 
 ## Agent evaluations
 

@@ -1,12 +1,12 @@
 ---
 name: abliterate-variants
-description: Hunts for variants of a known vulnerability in a codebase. Starts from a CVE or GHSA id, a fixing commit, a GitHub commit URL, or the repository's own past security fixes, learns the vulnerable pattern and the guard the fix added, and finds the same pattern without that guard. Use when the user mentions a CVE or advisory, asks "are there other places like this", after a security fix, or to check whether earlier fixes were complete.
+description: Checks whether a security fix covers similar paths in the supplied local project before a push or merge. Use for a CVE or GHSA advisory, a fixing commit, a GitHub commit URL or the project's own fix history when checking the completeness of a correction.
 license: MIT
 ---
 
 # abliterate variants
 
-A fix tells you two things: the rule the vulnerable code broke, and the guard that restores it. A variant is code that still breaks that rule without that guard. Reply in the user's language. This skill only reads: it never edits, runs the code under review, or contacts the systems the code talks to.
+Review the supplied checkout to see where the same product rule applies. Use the fixing diff and local callers as evidence. A public advisory or fixing patch can document the original change. An application URL only identifies a route to look up in source. Leave the application untouched and report any missing source evidence. Reply in the user's language.
 
 ## Workflow
 

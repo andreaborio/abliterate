@@ -106,7 +106,9 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        cat > "$GITHUB_WORKSPACE/.abliterate/prompt.md" <<EOF
+        cat "$GITHUB_ACTION_PATH/skills/abliterate-review/reference/review-scope.md" > "$GITHUB_WORKSPACE/.abliterate/prompt.md"
+        cat >> "$GITHUB_WORKSPACE/.abliterate/prompt.md" <<EOF
+
         Read the skill at $GITHUB_ACTION_PATH/skills/abliterate-review/SKILL.md and follow it in non-interactive mode
         to review this pull request against base $ABL_BASE. Its reference files are next to it.
 

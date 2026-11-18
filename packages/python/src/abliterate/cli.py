@@ -22,12 +22,13 @@ def read(*parts):
 
 
 def topics():
+    scope = read("abliterate-review", "reference", "review-scope.md").strip()
     out = {}
     for block in re.split(r"\n(?=### )", read("abliterate-review", "reference", "prompts.md"))[1:]:
         heading, _, rest = block.partition("\n")
         m = re.fullmatch(r"### (\w+) — (.+)", heading.strip())
         if m:
-            out[m.group(1)] = (m.group(2), rest.strip())
+            out[m.group(1)] = (m.group(2), scope + "\n\n" + rest.strip())
     return out
 
 

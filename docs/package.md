@@ -1,6 +1,6 @@
 # abliterate
 
-Evidence for a security review of source code, for coding agents and CI. Read-only on your repository.
+Review your team's local source changes before a push or merge. `abliterate review --since main` prints a brief for your coding agent. It asks the agent to trace the diff in the checkout, report confirmed regressions and propose tests with synthetic data.
 
 ```sh
 npx -y abliterate@latest sinks --changed --base main     # candidate vulnerable lines the change introduced

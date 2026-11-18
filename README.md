@@ -5,7 +5,7 @@
 
 # Catch the vulnerability before the push.
 
-abliterate helps your coding agent answer one question: **what security rule does this change break?**
+abliterate helps a team check its own source changes before a push or merge. **Which product rule does this change break, and which test would catch it?** The reviewer reads the supplied checkout, traces the changed path and reports what the evidence supports. An application URL can identify the route to look up in code. The running application stays outside the review.
 
 It has three parts that work together:
 
@@ -40,7 +40,7 @@ npx skills add andreaborio/abliterate --skill abliterate-review --skill ablitera
 
 ## Try a review
 
-> Review what this branch would push against main for security problems.
+> Review the changes our team would push against main. Use the local diff, callers and tests to check our product's security rules. Report confirmed regressions and suggest a test with synthetic data for each. Leave files unchanged.
 
 The skill runs the engine, traces each lead, and reports only what it could demonstrate. Each confirmed finding comes with:
 - the `file:line`;

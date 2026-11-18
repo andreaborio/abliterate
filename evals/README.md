@@ -4,7 +4,8 @@
 | --- | --- |
 | `make_fixtures.py` | 14 synthetic git repos. Each has a `main` base and a `feature` branch that introduces one vulnerability; most also carry a guarded twin that must not be reported. Writes `expected.json` with the exact lines. |
 | `../engine/test/` | Deterministic engine tests on those fixtures: recall on seeded vulnerabilities, zero hits on guarded twins, SARIF schema, replayed OSV/KEV/EPSS. |
-| `cases/` | Agent evals in `claude plugin eval` format. Each case scaffolds one fixture, sends a user-style request, and grades `findings.json` and the reply. |
+| `cases/` | Agent evals in `claude plugin eval` format. Each case scaffolds one fixture, sends a user-style request and grades the reply or requested report. |
+| [local-directory-card](cases/local-directory-card/prompt.md) | Offline source review of a member card before push. The case grades the reply, checks tool calls and includes a ticket URL as context. |
 | `grade_findings.py` | Deterministic grader for any agent's `findings.json` against `expected.json`. |
 
 ## Run the agent evals
@@ -30,7 +31,7 @@ Graded with `grade_findings.py` plus a reading of each report.
 | variants-history | first run: `renderReply` pre-existing ✓, `renderMention` downgraded to needs-evidence ✗ → skill fixed → rerun: both correct (3/3) | found both, free-form output without introduced/pre-existing statuses |
 
 The variants miss led to a skill change:
-- a past fix that guarded the same kind of data establishes attacker control;
+- a past fix identifies the input contract to verify on each sibling path;
 - identical patterns must be classified consistently.
 
 On these small fixtures the baseline model often finds the bug too. What the skill adds there:

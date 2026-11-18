@@ -26,7 +26,7 @@ Write the review to `findings.json`, then run `abliterate report --in findings.j
       "impact": "Reads or alters any table the app's database role can reach.",
       "evidence": "No parameter binding, escaping or allowlist between req.query.q and db.query; the route has no auth middleware.",
       "fix": "db.query('... ILIKE $1', ['%' + term + '%'])",
-      "test": "GET /users?q=O'Brien returns 200 with matching rows; q=' OR 1=1 -- returns no extra rows."
+      "test": "With a fake database adapter and the synthetic name O'Brien, assert that the query text stays constant and that the name is passed as a separate bound value."
     }
   ]
 }

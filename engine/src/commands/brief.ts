@@ -12,12 +12,13 @@ const skillRoot = () => {
 const read = (...parts: string[]) => readFileSync(join(skillRoot(), ...parts), "utf8");
 
 function topics(): Map<string, { title: string; body: string }> {
+  const scope = read("abliterate-review", "reference", "review-scope.md").trim();
   const text = read("abliterate-review", "reference", "prompts.md");
   const out = new Map<string, { title: string; body: string }>();
   for (const block of text.split(/\n(?=### )/).slice(1)) {
     const [heading, ...rest] = block.split("\n");
     const m = /^### (\w+) — (.+)$/.exec(heading!.trim());
-    if (m) out.set(m[1]!, { title: m[2]!, body: rest.join("\n").trim() });
+    if (m) out.set(m[1]!, { title: m[2]!, body: scope + "\n\n" + rest.join("\n").trim() });
   }
   return out;
 }

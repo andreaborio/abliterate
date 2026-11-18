@@ -50,5 +50,5 @@ What a seed contains:
 Each variant is a place where that rule fires without that guard. Then:
 1. Confirm the variant reaches attacker-controlled data. Shape seeds (`rule: shape:…`) are weaker: read them critically.
 2. `changedIn` set → introduced by this change. `null` → pre-existing sibling of a past fix, which is still worth reporting separately: it is the bug the earlier fix missed.
-3. A variant inherits the threat model of the fix that seeded it. If the fix escaped `author` because users control it, a new function rendering another user-controlled field the same way is confirmed on the same grounds; the missing caller is not a reason to downgrade it. Give introduced and pre-existing variants of one pattern the same confidence.
+3. Use the original fix to identify the relevant data contract. Check that the sibling receives user-controlled data and that the omitted guard matters on its path. A shared contract can establish this for multiple callers. If the contract or caller is missing, record the specific evidence needed.
 4. When an advisory's fix is internal to a library, the engine falls back to its CWE class. That sweep finds the same class of bug in application code; it does not prove the library flaw is reachable.

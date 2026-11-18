@@ -68,12 +68,13 @@ var skillRoot = () => {
 };
 var read = (...parts) => (0, import_node_fs.readFileSync)((0, import_node_path.join)(skillRoot(), ...parts), "utf8");
 function topics() {
+  const scope2 = read("abliterate-review", "reference", "review-scope.md").trim();
   const text = read("abliterate-review", "reference", "prompts.md");
   const out = /* @__PURE__ */ new Map();
   for (const block2 of text.split(/\n(?=### )/).slice(1)) {
     const [heading, ...rest] = block2.split("\n");
     const m = /^### (\w+) — (.+)$/.exec(heading.trim());
-    if (m) out.set(m[1], { title: m[2], body: rest.join("\n").trim() });
+    if (m) out.set(m[1], { title: m[2], body: scope2 + "\n\n" + rest.join("\n").trim() });
   }
   return out;
 }
