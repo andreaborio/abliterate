@@ -1,7 +1,5 @@
-import { readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { computeScope, trackedFiles } from "../git";
-import { MAX_BYTES } from "../lang";
+import { readWorktreeText } from "../worktree";
 import { RULES } from "../rules";
 import { scan, type Candidate } from "../scan";
 import { entryPoints, type EntryPoint } from "../surface";
@@ -11,7 +9,8 @@ export const SCOPE_HELP = `abliterate scope [--base REF]
   Verified review states: commits since the merge-base (push), staged (index), unstaged (worktree), untracked.
   Never fetches or changes branches; diff drivers and textconv are disabled.`;
 
-export const SINKS_HELP = `abliterate sinks [--base REF] [--changed] [--include-guarded] [--rule ID,...] [--format json|md]
+export const SINKS_HELP = `abliterate sinks [--base REF [--head REF]] [--changed] [--include-guarded] [--rule ID,...] [--format json|md]
+  With --head only the named commit is reviewed; local files and the index are excluded.
   Candidate vulnerable code by CWE, each marked with the snapshot that changed it (push, index, worktree,
   untracked) or null when it predates the change. Candidates must be traced and confirmed; they are not findings.`;
 
@@ -30,7 +29,7 @@ const fmt = (flags: Flags) => {
   return f;
 };
 
-function candidatesMd(cs: Candidate[], guarded: Candidate[]): string {
+export function candidatesMd(cs: Candidate[], guarded: Candidate[]): string {
   const row = (c: Candidate) => `| ${c.changedIn ?? "before"} | ${c.cwe} | \`${c.path}:${c.line}\` | ${c.rule} | ${c.confidence} | \`${c.snippet.replace(/\|/g, "\\|").replace(/`/g, "'")}\` |`;
   const out = ["| changed in | CWE | location | rule | confidence | code |", "| --- | --- | --- | --- | --- | --- |", ...cs.map(row)];
   if (guarded.length) out.push("", `${guarded.length} more candidate(s) had a recognised guard in the same block; rerun with --include-guarded to list them.`);
@@ -38,12 +37,12 @@ function candidatesMd(cs: Candidate[], guarded: Candidate[]): string {
 }
 
 export function sinks(flags: Flags, cwd: string): number {
-  allowFlags(flags, ["base", "changed", "include-guarded", "rule", "format"]);
+  allowFlags(flags, ["base", "head", "changed", "include-guarded", "rule", "format"]);
   const format = fmt(flags);
   const ids = str(flags, "rule")?.split(",").map((s) => s.trim()).filter(Boolean);
   const rules = ids ? RULES.filter((r) => ids.includes(r.id)) : RULES;
   if (ids && rules.length !== ids.length) throw new UsageError(`unknown rule id in --rule; known: ${RULES.map((r) => r.id).join(", ")}`);
-  const r = scan(cwd, { base: str(flags, "base"), changedOnly: flags.changed === true, rules });
+  const r = scan(cwd, { base: str(flags, "base"), head: str(flags, "head"), changedOnly: flags.changed === true, rules });
   const includeGuarded = flags["include-guarded"] === true;
   if (format === "md") { process.stdout.write(candidatesMd(includeGuarded ? [...r.candidates, ...r.guarded] : r.candidates, includeGuarded ? [] : r.guarded)); return EXIT.ok; }
   print({
@@ -66,12 +65,8 @@ export function surface(flags: Flags, cwd: string): number {
   const files = flags.changed === true ? [...changed.keys()] : [...new Set([...trackedFiles(sc.root), ...sc.untracked])];
   const eps: (EntryPoint & { changed: boolean })[] = [];
   for (const path of files.sort()) {
-    let text: string;
-    try {
-      const p = join(sc.root, path);
-      if (statSync(p).size > MAX_BYTES) continue;
-      text = readFileSync(p, "utf8");
-    } catch { continue; }
+    const text = readWorktreeText(sc.root, path);
+    if (text === undefined) continue;
     for (const e of entryPoints(path, text)) {
       const hunks = changed.get(path);
       eps.push({ ...e, changed: !!hunks?.some(([s, n]) => e.line >= s && e.line < s + n) });

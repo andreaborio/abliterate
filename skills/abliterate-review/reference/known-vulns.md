@@ -14,9 +14,9 @@ For each resolved package version from the lockfiles, the engine queries OSV and
 | `reachability.verdict` | Meaning | What to do |
 | --- | --- | --- |
 | `symbol-used` | The package is imported and a function the advisory names is called | Open each `symbolUses` location. Trace the arguments: is the attacker-controlled part of the call the one the advisory describes? If yes → `confirmed`, `source: "deps"`. |
-| `imported-symbol-not-seen` | Imported, but the named functions were not found | Check for dynamic access (`_[name]`, re-exports, wrapper modules). If none → upgrade hygiene, not a finding. |
+| `imported-symbol-not-seen` | Import observed, no matching call seen in the inspected files | Check dynamic access, re-exports and wrappers. If the path remains unresolved, record the missing evidence. |
 | `imported` | Imported; the advisory names no function | Read the advisory to identify the vulnerable feature, then search for it. Unresolved → `needs-evidence`. |
-| `not-imported` | Not imported by application code | Transitive or tooling only. Check whether it runs at build or deploy time with untrusted input (CI, bundlers). Usually hygiene. |
+| `not-imported` | No matching import observed in the inspected files | Check indirect imports, transitive dependencies and build or deploy tooling before determining reachability. |
 | `unknown` | Ecosystem without import mapping | Search manually. |
 
 Rules:

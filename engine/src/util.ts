@@ -50,7 +50,9 @@ export function git(cwd: string, args: string[], opts: { allowFail?: boolean } =
   const r = spawnSync("git", [
     "-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null", "-c", "diff.external=",
     "-c", "core.pager=cat", "--no-pager", ...args,
-  ], { cwd, encoding: "utf8", maxBuffer: 256 * 1024 * 1024, env: { ...process.env, GIT_EXTERNAL_DIFF: "", GIT_PAGER: "cat", LC_ALL: "C" } });
+  ], { cwd, encoding: "utf8", maxBuffer: 256 * 1024 * 1024, env: {
+    ...process.env, GIT_EXTERNAL_DIFF: "", GIT_PAGER: "cat", GIT_NO_REPLACE_OBJECTS: "1", GIT_NO_LAZY_FETCH: "1", GIT_ALLOW_PROTOCOL: "", LC_ALL: "C",
+  } });
   if (r.error) throw new Error(`git not available: ${r.error.message}`);
   if (r.status !== 0 && !opts.allowFail) throw new Error(`git ${args.slice(0, 3).join(" ")} failed: ${(r.stderr || "").trim()}`);
   return r.status === 0 ? r.stdout : "";

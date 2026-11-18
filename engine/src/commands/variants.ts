@@ -1,8 +1,7 @@
-import { readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
 import { ENDPOINTS, makeHttp } from "../deps/net";
 import { computeScope, trackedFiles } from "../git";
-import { langOf, MAX_BYTES, skipPath, stripComments } from "../lang";
+import { langOf, skipPath, stripComments } from "../lang";
+import { readWorktreeText } from "../worktree";
 import { RULES } from "../rules";
 import { scan, type Candidate } from "../scan";
 import { allowFlags, EXIT, git, print, str, UsageError, type Flags } from "../util";
@@ -57,8 +56,8 @@ function shapeMatches(root: string, files: string[], seed: Seed): Candidate[] {
   const guardRe = seed.guards.length ? new RegExp(`\\b(${seed.guards.map((g) => g.replace(/\$/g, "\\$")).join("|")})\\s*\\(`) : undefined;
   for (const path of files) {
     if (skipPath(path) || langOf(path) !== langOf(seed.file)) continue;
-    let text: string;
-    try { const p = join(root, path); if (statSync(p).size > MAX_BYTES) continue; text = readFileSync(p, "utf8"); } catch { continue; }
+    const text = readWorktreeText(root, path);
+    if (text === undefined) continue;
     const code = stripComments(text, langOf(path)).split(/\r?\n/);
     code.forEach((l, i) => {
       if (needAll.every((re) => re.test(l)) && !(guardRe && guardRe.test(l))) {

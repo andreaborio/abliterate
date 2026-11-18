@@ -1,6 +1,4 @@
-import { readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
-import { langOf, MAX_BYTES, skipPath, stripComments } from "../lang";
+import { langOf, skipPath, stripComments } from "../lang";
 import type { Ecosystem } from "./lockfiles";
 
 export interface Reach {
@@ -31,7 +29,7 @@ const SOURCE_LANGS: Record<Ecosystem, string[]> = {
  * Where the package is imported and whether any symbol named by the advisory is used in
  * those files. A hint for the reviewer, not proof: dynamic imports and re-exports are missed.
  */
-export function reachability(root: string, files: string[], ecosystem: Ecosystem, name: string, symbols: string[]): Reach {
+export function reachability(read: (path: string) => string | undefined, files: string[], ecosystem: Ecosystem, name: string, symbols: string[]): Reach {
   const pat = importPattern(ecosystem, name);
   if (!pat) return { verdict: "unknown", imports: [], symbolUses: [] };
   const imports: Reach["imports"] = [];
@@ -41,13 +39,9 @@ export function reachability(root: string, files: string[], ecosystem: Ecosystem
     if (skipPath(path)) continue;
     const lang = langOf(path);
     if (!SOURCE_LANGS[ecosystem].includes(lang) && !(ecosystem === "crates.io" && path.endsWith(".rs"))) continue;
-    let text: string;
-    try {
-      const p = join(root, path);
-      if (statSync(p).size > MAX_BYTES) continue;
-      text = stripComments(readFileSync(p, "utf8"), lang);
-    } catch { continue; }
-    const lines = text.split(/\r?\n/);
+    const text = read(path);
+    if (text === undefined) continue;
+    const lines = stripComments(text, lang).split(/\r?\n/);
     let imported = false;
     lines.forEach((l, i) => { if (pat.test(l)) { imported = true; imports.push({ path, line: i + 1 }); } });
     if (!imported || !symRe) continue;

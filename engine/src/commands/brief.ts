@@ -11,8 +11,10 @@ const skillRoot = () => {
 
 const read = (...parts: string[]) => readFileSync(join(skillRoot(), ...parts), "utf8");
 
+export const reviewScope = () => read("abliterate-review", "reference", "review-scope.md").trim();
+
 function topics(): Map<string, { title: string; body: string }> {
-  const scope = read("abliterate-review", "reference", "review-scope.md").trim();
+  const scope = reviewScope();
   const text = read("abliterate-review", "reference", "prompts.md");
   const out = new Map<string, { title: string; body: string }>();
   for (const block of text.split(/\n(?=### )/).slice(1)) {

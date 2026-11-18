@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import type { Finding, Report, Severity } from "../findings";
+import { readWorktreeText } from "../worktree";
 
 // GitHub code scanning reads "security-severity" (0.0-10.0) on rules to bucket
 // alerts. These are the midpoints of GitHub's critical/high/medium/low bands.
@@ -12,12 +11,8 @@ const INFORMATION_URI = "https://github.com/andreaborio/abliterate";
 
 /** Text of a source line with whitespace collapsed, so fingerprints survive reformatting and line shifts. */
 function lineText(root: string, path: string, line: number): string {
-  try {
-    const text = readFileSync(join(root, path), "utf8").split(/\r?\n/)[line - 1] ?? "";
-    return text.replace(/\s+/g, " ").trim();
-  } catch {
-    return "";
-  }
+  const text = readWorktreeText(root, path);
+  return text?.split(/\r?\n/)[line - 1]?.replace(/\s+/g, " ").trim() ?? "";
 }
 
 export function fingerprint(root: string, f: Finding): string {

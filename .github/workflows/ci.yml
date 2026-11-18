@@ -62,19 +62,26 @@ jobs:
           cp -R "$RUNNER_TEMP/fx/sqli-express/." "$GITHUB_WORKSPACE/"
           echo "action/" >> "$GITHUB_WORKSPACE/.git/info/exclude"
           git -C "$GITHUB_WORKSPACE" checkout -q feature
+          mkdir "$GITHUB_WORKSPACE/.abliterate"
+          echo '{"version":1,"scope":{"states":[],"complete":true,"note":"from checkout"},"findings":[]}' > "$GITHUB_WORKSPACE/.abliterate/findings.json"
       - id: review
         uses: ./action
         with:
           base: main
+          # On a push or a fork, exercise the configured-but-skipped agent path without a key.
+          agent: ${{ github.event.pull_request.head.repo.full_name == github.repository && 'none' || 'claude' }}
           upload-sarif: 'false'
           comment: 'false'
           offline: 'true'
       - name: The seeded SQL injection is reported as evidence and nothing blocks
         env:
           FINDINGS: ${{ steps.review.outputs.findings }}
+          SARIF: ${{ steps.review.outputs.sarif }}
           BLOCKING: ${{ steps.review.outputs.blocking }}
         run: |
           set -eu
           test "$BLOCKING" = "false"
           jq -e '.findings[] | select(.cwe[0] == "CWE-89" and .location.path == "src/routes/users.js" and .status == "needs-evidence")' "$FINDINGS"
-          jq -e '.runs[0].results | length >= 1' "$GITHUB_WORKSPACE/.abliterate/results.sarif"
+          [[ "$FINDINGS" == "$RUNNER_TEMP"/abliterate.*/findings.json ]]
+          jq -e '.runs[0].results | length >= 1' "$SARIF"
+          jq -e '.scope.note == "from checkout"' "$GITHUB_WORKSPACE/.abliterate/findings.json"

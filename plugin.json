@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "abliterate",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Security review of source changes before you push and on every PR, with known-vulnerability reachability and variant hunting.",
   "author": { "name": "andreaborio", "url": "https://github.com/andreaborio" },
   "homepage": "https://abliterate.io",

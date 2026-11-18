@@ -1,8 +1,7 @@
-import { readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
-import { computeScope, readAt, trackedFiles, type Scope, type State } from "./git";
+import { commitTree, computeScope, readAt, trackedFiles, type Scope, type State } from "./git";
 import { langOf, MAX_BYTES, skipPath, stripComments } from "./lang";
 import { RULES, type Ctx, type Rule } from "./rules";
+import { readWorktreeText } from "./worktree";
 
 export type Where = State | "untracked" | null;
 
@@ -32,18 +31,6 @@ function snippet(line: string, rule: string): string {
   return s.length > 200 ? s.slice(0, 197) + "…" : s;
 }
 
-function readDisk(root: string, path: string): string | undefined {
-  try {
-    const p = join(root, path);
-    const st = statSync(p);
-    if (!st.isFile() || st.size > MAX_BYTES) return undefined;
-    const text = readFileSync(p, "utf8");
-    return text.includes("\u0000") ? undefined : text;
-  } catch {
-    return undefined;
-  }
-}
-
 export function scanText(path: string, text: string, rules: Rule[] = RULES) {
   const lang = langOf(path);
   const raw = text.split(/\r?\n/);
@@ -71,17 +58,18 @@ export interface ScanResult {
  * push, index or working tree (plus untracked). Each changed snapshot is scanned in its own
  * content so line numbers match that snapshot, never mixed.
  */
-export function scan(cwd: string, opts: { base?: string; changedOnly?: boolean; rules?: Rule[] }): ScanResult {
-  const scope = computeScope(cwd, opts.base);
+export function scan(cwd: string, opts: { base?: string; head?: string; changedOnly?: boolean; rules?: Rule[] }): ScanResult {
+  const scope = computeScope(cwd, opts.base, opts.head);
   const { root, states } = scope;
   const byState = (s: State) => new Map(states[s].filter((f) => f.status !== "deleted").map((f) => [f.path, f.hunks]));
   const push = byState("push");
+  const tree = opts.head && scope.head ? commitTree(root, scope.head, opts.changedOnly ? [...push.keys()] : undefined) : undefined;
   const index = byState("index");
   const work = byState("worktree");
   const untracked = new Set(scope.untracked);
 
   const files = new Set<string>(
-    opts.changedOnly ? [...push.keys(), ...index.keys(), ...work.keys(), ...untracked] : [...trackedFiles(root), ...untracked],
+    opts.changedOnly ? [...push.keys(), ...index.keys(), ...work.keys(), ...untracked] : (tree?.paths ?? [...trackedFiles(root), ...untracked]),
   );
   const seen = new Set<string>();
   const candidates: Candidate[] = [];
@@ -107,7 +95,12 @@ export function scan(cwd: string, opts: { base?: string; changedOnly?: boolean; 
   let scanned = 0;
   for (const path of [...files].sort()) {
     if (skipPath(path)) continue;
-    const disk = readDisk(root, path);
+    if (tree) {
+      const text = tree.read(path);
+      if (text !== undefined) { emit(path, text, (l) => inHunks(push.get(path), l) ? "push" : null, !!opts.changedOnly); scanned++; }
+      continue;
+    }
+    const disk = readWorktreeText(root, path);
     const localEdits = index.has(path) || work.has(path);
     if (untracked.has(path)) {
       if (disk !== undefined) { emit(path, disk, () => "untracked", false); scanned++; }

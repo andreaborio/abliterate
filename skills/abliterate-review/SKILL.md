@@ -76,7 +76,7 @@ Stop the impact statement at the last boundary visible in source. When only a fu
 **6. Known vulnerabilities.** Follow [known-vulns.md](reference/known-vulns.md):
 
 - An advisory is a finding only when the vulnerable function is reached with data an attacker controls (`symbol-used`, then traced).
-- Otherwise it is upgrade hygiene, reported separately.
+- If no matching call was observed, inspect indirect uses. Mark an unresolved path as `needs-evidence`. Report upgrades separately when the inspected code establishes the affected feature is unused.
 - KEV outranks EPSS, which outranks CVSS.
 - For each confirmed finding, ask whether the same pattern exists elsewhere: run `variants --from <sha>` on the fixing commit, or search for the sink with the same guard missing.
 
