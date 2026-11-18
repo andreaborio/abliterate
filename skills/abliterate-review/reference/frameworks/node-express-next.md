@@ -17,6 +17,7 @@
 - Next.js `middleware.ts`: guarded paths come from `config.matcher`. Gaps: matcher that omits `/api`, `_next/data` routes, route groups, or trailing/locale variants; matching on `pathname.startsWith`. Middleware is a coarse filter: Server Actions, route handlers and server components must re-check the session themselves. Do not rely on middleware alone for authorization.
 - NextAuth/Auth.js: `getServerSession(authOptions)` / `auth()` inside the handler; a `session` callback that adds `role` is only trustworthy if derived server-side from the DB or verified token. Client `useSession` checks are UI only. Check `authorized`/`callbacks.jwt` that copy user-supplied fields.
 - Server Actions: arguments are attacker-controlled; check session, ownership and input validation in the action body.
+- Next.js matcher that excludes anything ending in an extension (`.*\\.[a-zA-Z0-9]+$`) also excludes dynamic pages such as `/orders/x.png`. A Server Action can be invoked on any page URL, so the action runs with no middleware. Decisive, harmless check on a deployment you own: `POST` that path with header `Next-Action: <40 zeros>` and no cookie; `Server action not found` instead of the login redirect means the dispatcher is reachable past the middleware.
 
 ## Data access
 | Safe | Unsafe |
