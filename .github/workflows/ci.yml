@@ -18,6 +18,9 @@ jobs:
       - run: npx --prefix engine tsc -p engine --noEmit
       # Tests replay recorded OSV/KEV/EPSS responses: no network calls to advisory services.
       - run: npm test --prefix engine
+      # The plugin ships the built engine as bin/abliterate: it must match the source.
+      - name: bin/abliterate is the build of engine/src
+        run: git diff --exit-code -- bin/abliterate
 
   packages:
     runs-on: ubuntu-latest

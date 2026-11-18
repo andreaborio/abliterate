@@ -2,9 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { safeRef, UsageError, EXIT, type Flags, allowFlags, str } from "../util";
 
-// The skill files ship next to cli.cjs in the npm package (skills/<name>/...).
+// Skill files: next to cli.cjs in the npm package (skills/), one level up from the plugin's
+// bin/abliterate (repo root skills/), or two levels up from packages/npm in a checkout.
 const skillRoot = () => {
-  for (const dir of [join(__dirname, "skills"), join(__dirname, "..", "..", "skills")]) if (existsSync(join(dir, "abliterate-review", "SKILL.md"))) return dir;
+  for (const dir of [join(__dirname, "skills"), join(__dirname, "..", "skills"), join(__dirname, "..", "..", "skills")]) if (existsSync(join(dir, "abliterate-review", "SKILL.md"))) return dir;
   throw new Error("bundled skill files not found next to the CLI");
 };
 

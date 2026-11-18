@@ -1,6 +1,7 @@
-// Bundles the engine into one dependency-free CommonJS file for the npm package.
+// Bundles the engine into one dependency-free CommonJS file for the npm package, and copies it
+// to bin/abliterate: Claude Code puts a plugin's bin/ on PATH, so the plugin works without npm.
 import { build } from "esbuild";
-import { readFileSync } from "node:fs";
+import { chmodSync, copyFileSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 // Resolve everything from this file so the build works from any working directory (CI, the Action).
@@ -21,3 +22,6 @@ await build({
   legalComments: "none",
   logLevel: "warning",
 });
+
+copyFileSync(new URL("../packages/npm/cli.cjs", import.meta.url), new URL("../bin/abliterate", import.meta.url));
+chmodSync(new URL("../bin/abliterate", import.meta.url), 0o755);

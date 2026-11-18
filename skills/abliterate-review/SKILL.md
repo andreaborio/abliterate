@@ -16,7 +16,7 @@ Answer one question: **what security rule could be assumed true before this chan
 
 ## The engine
 
-The `abliterate` CLI collects evidence deterministically. Run `abliterate <command>` if it is on PATH, otherwise `npx -y abliterate@0.2.0 <command>`. Every command is read-only on the repository and prints JSON (`--format md` for a table).
+The `abliterate` CLI collects evidence deterministically. The Claude Code plugin puts it on PATH: run `abliterate <command>`. If it is not on PATH, run `npx -y abliterate@latest <command>`. Running the engine is part of the review and allowed; it is not one of the project's dependencies. Every command is read-only on the repository and prints JSON (`--format md` for a table). If neither way works (no Node, no network), say so in the report and review by hand.
 
 | Command | Gives you |
 | --- | --- |
@@ -96,7 +96,7 @@ Severity, confidence and the full tracing method: [methodology.md](reference/met
 - **Never run the change's code** to learn what it does. Read tests, config, imports, hooks and scripts instead. A verification may run only the inspected subset, isolated, with synthetic fixtures, no network and no credentials. If you cannot isolate it, say so.
 - **No network scanning,** no payloads against running systems, no actions on real data. Test inputs are minimal benign values (a quote in a name, `../`, an internal address asserted to be rejected).
 - **Secrets.** Do not follow symlinks outside the repository and do not open secret files. Never repeat a secret value: cite location, type of exposure and whether rotation is needed.
-- **No side effects.** Do not install dependencies, apply fixes, stage, push or deploy as a side effect of a review.
+- **No side effects.** Do not install the project's dependencies, apply fixes, stage, push or deploy as a side effect of a review. The abliterate engine is the review tool, not a project dependency: running it, through PATH or `npx`, is expected.
 
 ## Design mode
 

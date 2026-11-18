@@ -1,0 +1,2275 @@
+#!/usr/bin/env node
+"use strict";
+
+// src/commands/brief.ts
+var import_node_fs = require("node:fs");
+var import_node_path = require("node:path");
+
+// src/util.ts
+var import_node_child_process = require("node:child_process");
+var VERSION = true ? "0.2.0" : "0.0.0-dev";
+var UsageError = class extends Error {
+};
+var EXIT = { ok: 0, findings: 1, usage: 2, env: 3 };
+function parseArgs(argv, booleans = []) {
+  const out = { _: [] };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === "--") {
+      out._.push(...argv.slice(i + 1));
+      break;
+    }
+    if (a.startsWith("--")) {
+      const [k, v] = a.slice(2).split(/=(.*)/s, 2);
+      if (booleans.includes(k)) {
+        out[k] = v === void 0 ? true : v !== "false";
+        continue;
+      }
+      const val = v ?? argv[++i];
+      if (val === void 0) throw new UsageError(`--${k} needs a value`);
+      out[k] = val;
+    } else out._.push(a);
+  }
+  return out;
+}
+function allowFlags(flags, allowed) {
+  for (const k of Object.keys(flags)) if (k !== "_" && !allowed.includes(k)) throw new UsageError(`unknown option --${k}`);
+}
+var str = (flags, k) => typeof flags[k] === "string" ? flags[k] : void 0;
+function safeRef(ref) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._/@{}^~-]{0,199}$/.test(ref) || ref.includes("..")) throw new UsageError(`unsafe git ref: ${ref}`);
+  return ref;
+}
+function git(cwd, args, opts = {}) {
+  const r = (0, import_node_child_process.spawnSync)("git", [
+    "-c",
+    "core.fsmonitor=false",
+    "-c",
+    "core.hooksPath=/dev/null",
+    "-c",
+    "diff.external=",
+    "-c",
+    "core.pager=cat",
+    "--no-pager",
+    ...args
+  ], { cwd, encoding: "utf8", maxBuffer: 256 * 1024 * 1024, env: { ...process.env, GIT_EXTERNAL_DIFF: "", GIT_PAGER: "cat", LC_ALL: "C" } });
+  if (r.error) throw new Error(`git not available: ${r.error.message}`);
+  if (r.status !== 0 && !opts.allowFail) throw new Error(`git ${args.slice(0, 3).join(" ")} failed: ${(r.stderr || "").trim()}`);
+  return r.status === 0 ? r.stdout : "";
+}
+function print(obj) {
+  process.stdout.write(JSON.stringify(obj, null, 2) + "\n");
+}
+
+// src/commands/brief.ts
+var skillRoot = () => {
+  for (const dir of [(0, import_node_path.join)(__dirname, "skills"), (0, import_node_path.join)(__dirname, "..", "skills"), (0, import_node_path.join)(__dirname, "..", "..", "skills")]) if ((0, import_node_fs.existsSync)((0, import_node_path.join)(dir, "abliterate-review", "SKILL.md"))) return dir;
+  throw new Error("bundled skill files not found next to the CLI");
+};
+var read = (...parts) => (0, import_node_fs.readFileSync)((0, import_node_path.join)(skillRoot(), ...parts), "utf8");
+function topics() {
+  const text = read("abliterate-review", "reference", "prompts.md");
+  const out = /* @__PURE__ */ new Map();
+  for (const block2 of text.split(/\n(?=### )/).slice(1)) {
+    const [heading, ...rest] = block2.split("\n");
+    const m = /^### (\w+) — (.+)$/.exec(heading.trim());
+    if (m) out.set(m[1], { title: m[2], body: rest.join("\n").trim() });
+  }
+  return out;
+}
+var SKILL_HELP = `abliterate skill [abliterate-review|abliterate-variants]
+  Prints a bundled SKILL.md (default abliterate-review).`;
+var PROMPT_HELP = `abliterate prompt [TOPIC]
+  Lists the focused prompts, or prints one to paste into your agent.`;
+var REVIEW_HELP = `abliterate review [--since BRANCH]
+  Prints the pre-push review prompt for your agent, with the base filled in.`;
+function skill(flags) {
+  allowFlags(flags, []);
+  const name = flags._[0] ?? "abliterate-review";
+  if (!["abliterate-review", "abliterate-variants"].includes(name)) throw new UsageError("skill name must be abliterate-review or abliterate-variants");
+  process.stdout.write(read(name, "SKILL.md"));
+  return EXIT.ok;
+}
+function prompt(flags) {
+  allowFlags(flags, []);
+  const all = topics();
+  const name = flags._[0];
+  if (!name) {
+    process.stdout.write(`Pick a prompt: abliterate prompt TOPIC
+${[...all].map(([k, v]) => `  ${k.padEnd(9)} ${v.title}`).join("\n")}
+`);
+    return EXIT.ok;
+  }
+  const t = all.get(name);
+  if (!t) throw new UsageError(`unknown topic "${name}"; topics: ${[...all.keys()].join(", ")}`);
+  process.stdout.write(t.body.replace(/\{base\}/g, "the base branch").replace(/\{seed\}/g, "the fix or advisory I name") + "\n");
+  return EXIT.ok;
+}
+function review(flags) {
+  allowFlags(flags, ["since"]);
+  const since = str(flags, "since");
+  if (since) safeRef(since);
+  const t = topics().get("review");
+  process.stdout.write(t.body.replace(/\{base\}/g, since ? `\`${since}\`` : "the base branch").replace(/\{seed\}/g, "") + "\n");
+  return EXIT.ok;
+}
+
+// src/commands/evidence.ts
+var import_node_fs3 = require("node:fs");
+var import_node_path3 = require("node:path");
+
+// src/git.ts
+var repoRoot = (cwd) => git(cwd, ["rev-parse", "--show-toplevel"]).trim();
+function resolveBase(root, explicit) {
+  if (explicit) {
+    safeRef(explicit);
+    if (!git(root, ["rev-parse", "--verify", "--quiet", `${explicit}^{commit}`], { allowFail: true }).trim()) {
+      throw new UsageError(`base "${explicit}" is not a commit in this clone (no fetch is done; fetch it yourself or pass another ref)`);
+    }
+    return explicit;
+  }
+  const upstream = git(root, ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], { allowFail: true }).trim();
+  for (const candidate of [upstream, "origin/main", "origin/master", "main", "master"].filter(Boolean)) {
+    if (git(root, ["rev-parse", "--verify", "--quiet", `${candidate}^{commit}`], { allowFail: true }).trim()) return candidate;
+  }
+  return void 0;
+}
+function parseDiff(text) {
+  const files = [];
+  let cur;
+  for (const line2 of text.split("\n")) {
+    if (line2.startsWith("diff --git ")) {
+      cur = { path: "", status: "modified", hunks: [] };
+      files.push(cur);
+    } else if (!cur) continue;
+    else if (line2.startsWith("new file mode")) cur.status = "added";
+    else if (line2.startsWith("deleted file mode")) cur.status = "deleted";
+    else if (line2.startsWith("rename from ")) {
+      cur.status = "renamed";
+      cur.from = line2.slice(12);
+    } else if (line2.startsWith("--- ") && cur.status === "deleted") cur.path = line2.slice(4).replace(/^a\//, "");
+    else if (line2.startsWith("+++ ") && line2 !== "+++ /dev/null") cur.path = line2.slice(4).replace(/^b\//, "");
+    else if (line2.startsWith("@@")) {
+      const m = /\+(\d+)(?:,(\d+))? @@/.exec(line2);
+      if (m) {
+        const len = m[2] === void 0 ? 1 : Number(m[2]);
+        if (len > 0) cur.hunks.push([Number(m[1]), len]);
+      }
+    }
+  }
+  return files.filter((f) => f.path);
+}
+var DIFF = ["diff", "--no-ext-diff", "--no-textconv", "--no-color", "--unified=0", "-M"];
+function computeScope(cwd, explicitBase) {
+  const root = repoRoot(cwd);
+  const notes = [];
+  const head = git(root, ["rev-parse", "--verify", "--quiet", "HEAD"], { allowFail: true }).trim() || void 0;
+  const base = resolveBase(root, explicitBase);
+  let mergeBase;
+  let push = [];
+  let commits = [];
+  if (!head) notes.push("No commits yet: only index and working tree can be reviewed.");
+  else if (!base) notes.push("No base found (no upstream, main or master): the push state was not computed. Pass --base.");
+  else {
+    mergeBase = git(root, ["merge-base", base, "HEAD"], { allowFail: true }).trim() || void 0;
+    if (!mergeBase) notes.push(`No common ancestor between ${base} and HEAD (shallow or unrelated history): push state not computed.`);
+    else {
+      push = parseDiff(git(root, ["-c", "core.quotePath=false", ...DIFF, mergeBase, "HEAD"]));
+      commits = git(root, ["log", "--format=%H%x09%s", `${mergeBase}..HEAD`]).trim().split("\n").filter(Boolean).map((l) => {
+        const [sha, ...s] = l.split("	");
+        return { sha, subject: s.join("	") };
+      });
+    }
+    if (git(root, ["rev-parse", "--is-shallow-repository"]).trim() === "true") notes.push("Shallow clone: history-based checks may be incomplete.");
+  }
+  const index = head ? parseDiff(git(root, ["-c", "core.quotePath=false", ...DIFF, "--cached"])) : [];
+  const worktree = parseDiff(git(root, ["-c", "core.quotePath=false", ...DIFF]));
+  const untracked = git(root, ["-c", "core.quotePath=false", "ls-files", "--others", "--exclude-standard"]).split("\n").filter(Boolean);
+  return { root, base, mergeBase, head, commits, states: { push, index, worktree }, untracked, notes };
+}
+function readAt(root, state, path) {
+  const spec = state === "push" ? `HEAD:${path}` : `:${path}`;
+  const out = git(root, ["cat-file", "-p", spec], { allowFail: true });
+  return out || void 0;
+}
+var trackedFiles = (root) => git(root, ["-c", "core.quotePath=false", "ls-files"]).split("\n").filter(Boolean);
+
+// src/lang.ts
+var EXT = {
+  js: "js",
+  jsx: "js",
+  mjs: "js",
+  cjs: "js",
+  ts: "js",
+  tsx: "js",
+  mts: "js",
+  cts: "js",
+  vue: "js",
+  svelte: "js",
+  py: "py",
+  go: "go",
+  java: "java",
+  kt: "java",
+  scala: "java",
+  rb: "rb",
+  erb: "rb",
+  php: "php",
+  blade: "php",
+  yml: "yaml",
+  yaml: "yaml"
+};
+function langOf(path) {
+  const m = /\.([A-Za-z0-9]+)$/.exec(path);
+  return m && EXT[m[1].toLowerCase()] || "other";
+}
+var SKIP = /(^|\/)(node_modules|vendor|dist|build|out|\.next|coverage|target|__pycache__|\.venv|venv|bower_components)\/|\.min\.(js|css)$|\.map$|(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/;
+var skipPath = (p) => SKIP.test(p);
+var MAX_BYTES = 1e6;
+function stripComments(text, lang) {
+  if (lang === "other") return text;
+  const hash = lang === "py" || lang === "rb" || lang === "yaml" || lang === "php";
+  const slash = lang !== "py" && lang !== "rb" && lang !== "yaml";
+  const out = text.split("");
+  let i = 0;
+  let quote = null;
+  const blank = (from, to) => {
+    for (let k = from; k < to; k++) if (out[k] !== "\n") out[k] = " ";
+  };
+  while (i < text.length) {
+    const c = text[i];
+    if (quote) {
+      if (c === "\\") {
+        i += 2;
+        continue;
+      }
+      if (text.startsWith(quote, i)) {
+        i += quote.length;
+        quote = null;
+        continue;
+      }
+      if (quote.length === 1 && quote !== "`" && c === "\n") quote = null;
+      i++;
+      continue;
+    }
+    if (lang === "py" && (text.startsWith('"""', i) || text.startsWith("'''", i))) {
+      quote = text.slice(i, i + 3);
+      i += 3;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`" && (lang === "js" || lang === "go")) {
+      quote = c;
+      i++;
+      continue;
+    }
+    if (slash && c === "/" && text[i + 1] === "/") {
+      const end = text.indexOf("\n", i);
+      blank(i, end < 0 ? text.length : end);
+      i = end < 0 ? text.length : end;
+      continue;
+    }
+    if (slash && c === "/" && text[i + 1] === "*") {
+      const end = text.indexOf("*/", i + 2);
+      const stop = end < 0 ? text.length : end + 2;
+      blank(i, stop);
+      i = stop;
+      continue;
+    }
+    if (hash && c === "#" && !(lang === "yaml" && /\$\{\{[^}]*$/.test(text.slice(text.lastIndexOf("\n", i) + 1, i)))) {
+      const end = text.indexOf("\n", i);
+      blank(i, end < 0 ? text.length : end);
+      i = end < 0 ? text.length : end;
+      continue;
+    }
+    i++;
+  }
+  return out.join("");
+}
+
+// src/rules.ts
+var SQL = /\b(select|insert\s+into|update\s+\w+\s+set|delete\s+from|where|order\s+by|union)\b/i;
+var JS_SOURCE = /\breq(?:uest)?\.(query|body|params|headers|cookies)\b|\bctx\.(query|request\.body|params)\b|\bsearchParams\.get\(|\bformData\.get\(/;
+var PY_SOURCE = /\brequest\.(args|form|values|json|get_json|data|files|GET|POST|body|query_params|path_params|cookies|headers)\b/;
+var ESCAPED = /^\s*(escape|esc|encode\w*|sanitize\w*|DOMPurify\.sanitize|purify|xss|he\.encode|htmlEscape|escapeHtml|_\.escape|String\(Number)/;
+function blockOf(ctx, i) {
+  const lines = ctx.code;
+  if (ctx.lang === "py" || ctx.lang === "rb" || ctx.lang === "yaml") {
+    const indent = (s) => s.length - s.trimStart().length;
+    const opener = ctx.lang === "py" ? /^\s*(async\s+)?(def|class)\s/ : ctx.lang === "rb" ? /^\s*(def|class|module)\s/ : /^\S/;
+    let def = -1;
+    for (let k = i; k >= 0; k--) {
+      if (opener.test(lines[k]) && (k === i || indent(lines[k]) < indent(lines[i]))) {
+        def = k;
+        break;
+      }
+    }
+    if (def < 0) return [Math.max(0, i - 15), Math.min(lines.length - 1, i + 15)];
+    const base = indent(lines[def]);
+    let end2 = Math.max(def, i);
+    for (let k = def + 1; k < lines.length; k++) {
+      if (lines[k].trim() === "") continue;
+      if (indent(lines[k]) <= base) break;
+      end2 = k;
+    }
+    let start2 = def;
+    while (start2 > 0 && /^\s*@/.test(lines[start2 - 1])) start2--;
+    return [start2, Math.max(end2, i)];
+  }
+  let start = i;
+  for (let k = i; k >= Math.max(0, i - 80); k--) {
+    if (/(=>\s*\{|\bfunction\b[^;]*\{|\)\s*\{\s*$|\bfunc\b[^;]*\{)/.test(lines[k])) {
+      start = k;
+      break;
+    }
+  }
+  let depth = 0;
+  let end = i;
+  for (let k = start; k < Math.min(lines.length, start + 200); k++) {
+    for (const ch of lines[k]) {
+      if (ch === "{") depth++;
+      else if (ch === "}") depth--;
+    }
+    end = k;
+    if (depth <= 0 && k > start) break;
+  }
+  return [start, Math.max(end, i)];
+}
+function taintedNames(ctx, from, to, source) {
+  const names = /* @__PURE__ */ new Set();
+  for (let k = from; k <= to; k++) {
+    const l = ctx.code[k];
+    if (!source.test(l)) continue;
+    const destructured = /(?:const|let|var)\s*\{([^}]+)\}\s*=/.exec(l);
+    if (destructured) destructured[1].split(",").forEach((n) => names.add(n.split(":").pop().trim().split("=")[0].trim()));
+    const simple = /(?:const|let|var|final|\bString)?\s*([A-Za-z_$][\w$]*)\s*(?::\s*[\w<>[\]| ]+)?=(?!=)/.exec(l);
+    if (simple && !/^(if|while|return)$/.test(simple[1])) names.add(simple[1]);
+    const tuple = /^\s*([A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)+)\s*=(?!=)/.exec(l);
+    if (tuple) tuple[1].split(",").forEach((n) => names.add(n.trim()));
+  }
+  names.delete("");
+  return names;
+}
+var mentions = (text, names) => [...names].some((n) => new RegExp(`(^|[^\\w$.])${n.replace(/\$/g, "\\$")}\\b`).test(text));
+function lineRule(def) {
+  return {
+    ...def,
+    match(ctx) {
+      const hits = [];
+      const lines = def.raw ? ctx.raw : ctx.code;
+      lines.forEach((l, i) => {
+        if (!def.re.test(l) || def.unless?.test(l) || def.needs && !def.needs(l, ctx, i)) return;
+        let guarded;
+        if (def.guard) {
+          const [s, e] = blockOf(ctx, i);
+          const g = ctx.code.slice(s, e + 1).join("\n").match(def.guard);
+          if (g) guarded = g[0].trim().slice(0, 80);
+        }
+        hits.push({ line: i + 1, ...guarded ? { guarded } : {} });
+      });
+      return hits;
+    }
+  };
+}
+function taintRule(def) {
+  return lineRule({
+    ...def,
+    re: def.sink,
+    needs: (line2, ctx, i) => {
+      if (def.source.test(line2)) return true;
+      const [s] = blockOf(ctx, i);
+      const names = taintedNames(ctx, s, i, def.source);
+      const call = line2.slice(line2.search(def.sink));
+      return mentions(call, names);
+    }
+  });
+}
+var RULES = [
+  // SQL injection
+  lineRule({
+    id: "js.sql.interpolated-query",
+    cwe: "CWE-89",
+    title: "SQL text built with interpolation or concatenation",
+    confidence: "high",
+    langs: ["js"],
+    re: /\.(query|execute|raw|unsafe|\$queryRawUnsafe|\$executeRawUnsafe|queryRawUnsafe|executeRawUnsafe|literal)\s*\(\s*(`[^`]*\$\{|["'][^"']*["']\s*\+\s*[\w$])/,
+    needs: (l) => SQL.test(l) || /RawUnsafe|literal/.test(l)
+  }),
+  lineRule({
+    id: "py.sql.formatted-query",
+    cwe: "CWE-89",
+    title: "SQL text built with f-string, % or format",
+    confidence: "high",
+    langs: ["py"],
+    re: /\.(execute|executemany|executescript|raw|extra|text)\s*\(\s*(f["']|["'][^"']*["']\s*(%|\.format\(|\+))|\btext\s*\(\s*f["']/,
+    needs: (l) => SQL.test(l)
+  }),
+  lineRule({
+    id: "go.sql.sprintf-query",
+    cwe: "CWE-89",
+    title: "SQL text built with fmt.Sprintf or concatenation",
+    confidence: "high",
+    langs: ["go"],
+    re: /\.(Query|QueryRow|Exec|QueryContext|QueryRowContext|ExecContext)\s*\([^)]*(fmt\.Sprintf\(|"\s*\+\s*\w)/
+  }),
+  lineRule({
+    id: "java.sql.concatenated-query",
+    cwe: "CWE-89",
+    title: "SQL/JPQL text concatenated with a variable",
+    confidence: "high",
+    langs: ["java"],
+    re: /\.(executeQuery|executeUpdate|execute|prepareStatement|createQuery|createNativeQuery|addBatch)\s*\(\s*"[^"]*"\s*\+/,
+    needs: (l) => SQL.test(l)
+  }),
+  lineRule({
+    id: "rb.sql.interpolated-where",
+    cwe: "CWE-89",
+    title: "ActiveRecord SQL fragment with string interpolation",
+    confidence: "high",
+    langs: ["rb"],
+    re: /\.(where|order|group|having|joins|find_by_sql|exec_query|execute|pluck|select)\s*\(\s*"[^"]*#\{/
+  }),
+  lineRule({
+    id: "php.sql.concatenated-query",
+    cwe: "CWE-89",
+    title: "SQL text concatenated with request input",
+    confidence: "high",
+    langs: ["php"],
+    re: /(mysqli_query|->query|->exec|DB::(select|statement|raw)|whereRaw|selectRaw|orderByRaw)\s*\([^;]*(\.\s*\$|\$_(GET|POST|REQUEST|COOKIE)|\{\$)/
+  }),
+  lineRule({
+    id: "js.nosql.operator-injection",
+    cwe: "CWE-943",
+    title: "Query object taken directly from the request",
+    confidence: "medium",
+    langs: ["js"],
+    re: /\.(find|findOne|updateOne|updateMany|deleteOne|deleteMany|countDocuments|aggregate)\s*\(\s*req\.(body|query)\b|\$where\s*:/
+  }),
+  // Command and code injection
+  lineRule({
+    id: "py.cmd.shell",
+    cwe: "CWE-78",
+    title: "Shell command built from a non-literal string",
+    confidence: "high",
+    langs: ["py"],
+    re: /\b(subprocess\.(run|call|Popen|check_output|check_call|getoutput|getstatusoutput)|os\.system|os\.popen|commands\.getoutput)\s*\(/,
+    needs: (l) => (/os\.system|os\.popen|getoutput|getstatusoutput/.test(l) || /shell\s*=\s*True/.test(l)) && /\(\s*(f["']|[A-Za-z_]|["'][^"']*["']\s*(%|\+|\.format))/.test(l.slice(l.indexOf("(")))
+  }),
+  lineRule({
+    id: "js.cmd.exec",
+    cwe: "CWE-78",
+    title: "Shell command string with interpolation or concatenation",
+    confidence: "high",
+    langs: ["js"],
+    re: /\b(exec|execSync|spawn|spawnSync)\s*\(\s*(`[^`]*\$\{|["'][^"']*["']\s*\+|[A-Za-z_$][\w$]*\s*[,)])/,
+    needs: (l) => !/\bexecFile/.test(l) && (!/spawn/.test(l) || /shell\s*:\s*true/.test(l))
+  }),
+  lineRule({
+    id: "go.cmd.shell",
+    cwe: "CWE-78",
+    title: "exec.Command through a shell with a non-literal script",
+    confidence: "high",
+    langs: ["go"],
+    re: /exec\.Command(Context)?\([^)]*"(sh|bash|cmd(\.exe)?)"\s*,\s*"(-c|\/c)"\s*,\s*[^"]/
+  }),
+  lineRule({
+    id: "rb.cmd.interpolated",
+    cwe: "CWE-78",
+    title: "Shell command with string interpolation",
+    confidence: "high",
+    langs: ["rb"],
+    re: /(\bsystem|\bexec|`|%x\(|IO\.popen|Open3\.\w+)\s*\(?\s*"[^"]*#\{|`[^`]*#\{/
+  }),
+  lineRule({
+    id: "php.cmd.request",
+    cwe: "CWE-78",
+    title: "Shell command with request input",
+    confidence: "high",
+    langs: ["php"],
+    re: /\b(shell_exec|system|exec|passthru|popen|proc_open)\s*\([^;]*\$_(GET|POST|REQUEST|COOKIE)/
+  }),
+  lineRule({
+    id: "js.code.eval",
+    cwe: "CWE-94",
+    title: "Dynamic code evaluation",
+    confidence: "medium",
+    langs: ["js"],
+    re: /\beval\s*\(|\bnew\s+Function\s*\(|\bvm\.(runIn\w*|compileFunction|Script)\b|setTimeout\s*\(\s*["'`]/,
+    unless: /\beval\s*\(\s*["'][^"']*["']\s*\)/
+  }),
+  lineRule({
+    id: "py.code.eval",
+    cwe: "CWE-94",
+    title: "eval/exec of a non-literal expression",
+    confidence: "medium",
+    langs: ["py"],
+    re: /(^|[^.\w])(eval|exec)\s*\(\s*[^"')\s]/
+  }),
+  // XSS
+  lineRule({
+    id: "js.xss.unsafe-html-prop",
+    cwe: "CWE-79",
+    title: "Raw HTML injected into the DOM",
+    confidence: "high",
+    langs: ["js"],
+    re: /dangerouslySetInnerHTML\s*=\s*\{\{\s*__html\s*:|\bv-html\s*=|\.innerHTML\s*[+]?=|\.outerHTML\s*=|insertAdjacentHTML\s*\(|document\.write(ln)?\s*\(|\{@html\s/,
+    unless: /__html\s*:\s*(DOMPurify\.sanitize|sanitize\w*|purify\w*|xss)\s*\(|innerHTML\s*=\s*["'`][^$`]*["'`]\s*;?\s*$|innerHTML\s*=\s*["']{2}/
+  }),
+  lineRule({
+    id: "js.xss.html-template",
+    cwe: "CWE-79",
+    title: "HTML assembled from a template literal with unescaped values",
+    confidence: "low",
+    langs: ["js"],
+    re: /`[^`]*<[a-zA-Z][^`]*\$\{[^`]*`/,
+    needs: (l) => {
+      const parts = [...l.matchAll(/\$\{([^}]*)\}/g)].map((m) => m[1]);
+      return parts.some((p) => !ESCAPED.test(p) && !/^\s*\d+\s*$/.test(p));
+    },
+    unless: /\b(sql|SQL|query)\s*\(|`\s*(SELECT|INSERT|UPDATE|DELETE)\b/
+  }),
+  lineRule({
+    id: "py.xss.mark-safe",
+    cwe: "CWE-79",
+    title: "Template output marked safe",
+    confidence: "medium",
+    langs: ["py"],
+    re: /\b(mark_safe|Markup|format_html_join)\s*\(\s*(f["']|[A-Za-z_])|\|\s*safe\b|render_template_string\s*\(/
+  }),
+  lineRule({
+    id: "tpl.xss.raw-output",
+    cwe: "CWE-79",
+    title: "Template raw-output escape hatch",
+    confidence: "medium",
+    langs: "any",
+    files: /\.(html|htm|jinja2?|j2|njk|hbs|handlebars|erb|blade\.php|php|twig|vue|svelte)$/,
+    re: /\{!!.*!!\}|\|\s*safe\b|\{\{\{[^}]+\}\}\}|<%==|\braw\s*\(|\.html_safe\b|th:utext|\|\s*raw\b/
+  }),
+  lineRule({
+    id: "rb.xss.html-safe",
+    cwe: "CWE-79",
+    title: "String marked html_safe or raw",
+    confidence: "medium",
+    langs: ["rb"],
+    re: /\.html_safe\b|\braw\s*\(?\s*[@\w]/
+  }),
+  // SSRF
+  taintRule({
+    id: "js.ssrf.request-url",
+    cwe: "CWE-918",
+    title: "Outbound request to a URL from the request",
+    confidence: "high",
+    langs: ["js"],
+    sink: /\b(fetch|axios(\.(get|post|put|request|head))?|got(\.(get|post))?|request|https?\.(get|request)|needle|superagent\.\w+|undici\.request|ky(\.(get|post))?)\s*\(/,
+    source: JS_SOURCE,
+    guard: /\b(ALLOWED|ALLOWLIST|allowlist|allowedHosts|isAllowed\w*|WHITELIST|whitelist)\b[^\n]*\.(has|includes|test)\s*\(|\.hostname\s*(===|!==|==|!=)|isPrivate\w*\(|ssrf\w*\(/
+  }),
+  taintRule({
+    id: "py.ssrf.request-url",
+    cwe: "CWE-918",
+    title: "Outbound request to a URL from the request",
+    confidence: "high",
+    langs: ["py"],
+    sink: /\b(requests|httpx|session|client)\.(get|post|put|head|request|stream)\s*\(|\burlopen\s*\(|\burllib\.request\.urlopen\s*\(/,
+    source: PY_SOURCE,
+    guard: /\b(ALLOWED|ALLOWLIST|allowlist|allowed_hosts|is_allowed\w*)\b[^\n]*\bin\b|\.hostname\s+(not\s+)?in\b|ipaddress\.ip_address\(/
+  }),
+  // Path traversal
+  taintRule({
+    id: "py.path.request-path",
+    cwe: "CWE-22",
+    title: "Filesystem path built from request input",
+    confidence: "high",
+    langs: ["py"],
+    sink: /\b(open|send_file|FileResponse|os\.remove|os\.unlink|shutil\.\w+|Path)\s*\(|os\.path\.join\s*\(/,
+    source: PY_SOURCE,
+    unless: /\bsafe_join\s*\(|secure_filename\s*\(/,
+    guard: /\.resolve\(\)\.is_relative_to\(|os\.path\.(realpath|abspath)\([^)]*\)\.startswith\(|commonpath\(/
+  }),
+  taintRule({
+    id: "js.path.request-path",
+    cwe: "CWE-22",
+    title: "Filesystem path built from request input",
+    confidence: "high",
+    langs: ["js"],
+    sink: /\b(readFile|readFileSync|createReadStream|writeFile|writeFileSync|unlink|unlinkSync|rm|rmSync|sendFile|download|path\.(join|resolve))\s*\(/,
+    source: JS_SOURCE,
+    guard: /\.startsWith\(\s*[\w.]*(ROOT|root|BASE|base|DIR|dir)[\w.]*\s*(\+\s*path\.sep)?\s*\)|\broot\s*:\s*[\w.]+/
+  }),
+  // Deserialization and parsers
+  lineRule({
+    id: "py.deser.unsafe-loader",
+    cwe: "CWE-502",
+    title: "Deserializer that can construct arbitrary objects",
+    confidence: "high",
+    langs: ["py"],
+    re: /\b(pickle|cPickle|_pickle|dill|marshal|shelve|jsonpickle)\.(loads?|Unpickler|decode|open)\s*\(|\byaml\.(load|load_all)\s*\(|\byaml\.unsafe_load/,
+    unless: /Loader\s*=\s*(yaml\.)?(SafeLoader|CSafeLoader|BaseLoader)|yaml\.safe_load/
+  }),
+  lineRule({
+    id: "java.deser.object-input",
+    cwe: "CWE-502",
+    title: "Java native deserialization",
+    confidence: "high",
+    langs: ["java"],
+    re: /new\s+ObjectInputStream\s*\(|\.readObject\s*\(\s*\)|XMLDecoder\s*\(|enableDefaultTyping\s*\(|activateDefaultTyping\s*\(/
+  }),
+  lineRule({
+    id: "php.deser.unserialize",
+    cwe: "CWE-502",
+    title: "unserialize on non-constant data",
+    confidence: "high",
+    langs: ["php"],
+    re: /\bunserialize\s*\(\s*\$/
+  }),
+  lineRule({
+    id: "rb.deser.marshal",
+    cwe: "CWE-502",
+    title: "Marshal/YAML load of non-constant data",
+    confidence: "high",
+    langs: ["rb"],
+    re: /\bMarshal\.load\s*\(|\bYAML\.(load|unsafe_load)\s*\(/,
+    unless: /permitted_classes|YAML\.safe_load/
+  }),
+  lineRule({
+    id: "js.deser.node-serialize",
+    cwe: "CWE-502",
+    title: "Deserializer that evaluates functions",
+    confidence: "high",
+    langs: ["js"],
+    re: /require\(\s*["'](node-serialize|serialize-to-js|funcster)["']\s*\)|\.unserialize\s*\(/
+  }),
+  lineRule({
+    id: "js.proto.merge-request",
+    cwe: "CWE-1321",
+    title: "Deep merge of request data into an object",
+    confidence: "medium",
+    langs: ["js"],
+    re: /\b(merge|defaultsDeep|mergeWith|extend|set|assignIn|deepmerge)\s*\([^)]*req\.(body|query)/
+  }),
+  // AuthN / sessions / crypto
+  lineRule({
+    id: "js.jwt.decode-unverified",
+    cwe: "CWE-347",
+    title: "JWT claims read without signature verification",
+    confidence: "high",
+    langs: ["js"],
+    re: /\bjwt\.decode\s*\(|\bjwtDecode\s*\(|algorithms\s*:\s*\[[^\]]*["']none["']/
+  }),
+  lineRule({
+    id: "py.jwt.verify-disabled",
+    cwe: "CWE-347",
+    title: "JWT signature verification disabled",
+    confidence: "high",
+    langs: ["py"],
+    re: /verify_signature["']?\s*:\s*False|jwt\.decode\([^)]*verify\s*=\s*False|algorithms\s*=\s*\[[^\]]*["']none["']/
+  }),
+  lineRule({
+    id: "any.tls.verification-disabled",
+    cwe: "CWE-295",
+    title: "TLS certificate verification disabled",
+    confidence: "high",
+    langs: "any",
+    re: /rejectUnauthorized\s*:\s*false|NODE_TLS_REJECT_UNAUTHORIZED\s*=?\s*["']?0|\bverify\s*=\s*False\b|InsecureSkipVerify\s*:\s*true|CERT_NONE|setHostnameVerifier\s*\(\s*\(?[^)]*\)?\s*->\s*true|curl_setopt\([^)]*CURLOPT_SSL_VERIFYPEER\s*,\s*(0|false)/
+  }),
+  lineRule({
+    id: "any.crypto.weak-random-token",
+    cwe: "CWE-330",
+    title: "Non-cryptographic randomness for a secret value",
+    confidence: "medium",
+    langs: "any",
+    re: /Math\.random\s*\(|\brandom\.(random|randint|choice|choices|getrandbits)\s*\(|\brand\s*\(|math\/rand"/,
+    needs: (l) => /token|secret|password|passwd|nonce|otp|salt|reset|session|api_?key|invite|code/i.test(l)
+  }),
+  lineRule({
+    id: "any.crypto.weak-algorithm",
+    cwe: "CWE-327",
+    title: "Weak hash or cipher for a security purpose",
+    confidence: "low",
+    langs: "any",
+    re: /createHash\s*\(\s*["'](md5|sha1)["']|hashlib\.(md5|sha1)\s*\(|\bMD5\.Create|DigestUtils\.(md5|sha1)|createCipheriv?\s*\(\s*["'][^"']*(ecb|des|rc4)|\bAES\.MODE_ECB|Cipher\.getInstance\s*\(\s*"[^"]*(ECB|DES)/i,
+    needs: (l) => /pass|token|sign|secret|auth|crypt|cipher|ecb|des/i.test(l)
+  }),
+  lineRule({
+    id: "js.cookie.insecure-session",
+    cwe: "CWE-614",
+    title: "Session cookie without secure/httpOnly",
+    confidence: "low",
+    langs: ["js"],
+    re: /(httpOnly|secure)\s*:\s*false/
+  }),
+  // Redirects
+  taintRule({
+    id: "js.redirect.request-target",
+    cwe: "CWE-601",
+    title: "Redirect to a target taken from the request",
+    confidence: "medium",
+    langs: ["js"],
+    sink: /\b(res\.redirect|redirect|NextResponse\.redirect|ctx\.redirect)\s*\(/,
+    source: JS_SOURCE,
+    guard: /startsWith\(\s*["']\/["']\s*\)\s*&&\s*!\s*[\w.]+\.startsWith\(\s*["']\/\/["']|new URL\([^)]*\)\.origin\s*(===|!==)|ALLOWED|allowlist/
+  }),
+  taintRule({
+    id: "py.redirect.request-target",
+    cwe: "CWE-601",
+    title: "Redirect to a target taken from the request",
+    confidence: "medium",
+    langs: ["py"],
+    sink: /\b(redirect|HttpResponseRedirect|RedirectResponse)\s*\(/,
+    source: PY_SOURCE,
+    guard: /url_has_allowed_host_and_scheme|is_safe_url|urlparse\([^)]*\)\.netloc/
+  }),
+  // Access control heuristic: object loaded by id with no owner/tenant reference in the handler.
+  {
+    id: "any.authz.object-by-id-unscoped",
+    cwe: "CWE-639",
+    title: "Object loaded by id with no owner/tenant check in the handler",
+    confidence: "low",
+    langs: ["py", "js", "rb", "php", "java", "go"],
+    match(ctx) {
+      const lookup2 = /\b(get_or_404|get_object_or_404|first_or_404|findById|findByPk|findUnique|findOneBy|findOrFail|find_by_id|find\(\s*params\[|\.get\(\s*(id|pk)\s*=|\.query\.get\(|getById|findByIdOrThrow)\b|\b\w+\.find\(\s*params\[:id\]/;
+      const scoped = /\b(owner|owner_id|ownerId|user_id|userId|tenant|tenant_id|tenantId|org_id|orgId|organization|account_id|accountId|team_id|teamId|workspace|current_user|currentUser|g\.user|req\.user|request\.user|session\[|authorize|can\?|policy|Policy|permission|has_perm|abort\(\s*40[34]\s*\)|forbidden|Forbidden)\b/;
+      const route = /@\w+\.(route|get|post|put|patch|delete)\(|\b(router|app|server)\.(get|post|put|patch|delete|all)\(|@(Get|Post|Put|Patch|Delete|Request)Mapping|\bdef\s+(show|update|destroy|edit)\b|export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)\b/;
+      const hits = [];
+      ctx.code.forEach((l, i) => {
+        if (!lookup2.test(l)) return;
+        const [s, e] = blockOf(ctx, i);
+        const block2 = ctx.code.slice(s, e + 1).join("\n");
+        if (!route.test(block2) || scoped.test(block2)) return;
+        hits.push({ line: i + 1, note: "No owner/tenant/policy reference in this handler; trace whether a query scope or middleware applies." });
+      });
+      return hits;
+    }
+  },
+  // Secrets: scanned on raw lines, values are never printed.
+  lineRule({
+    id: "any.secret.credential-literal",
+    cwe: "CWE-798",
+    title: "Credential with a known provider format in source",
+    confidence: "high",
+    langs: "any",
+    raw: true,
+    re: /\b(sk|rk)_live_[0-9A-Za-z]{16,}|\bAKIA[0-9A-Z]{16}\b|\bASIA[0-9A-Z]{16}\b|\bgh[pousr]_[A-Za-z0-9]{36,}\b|\bgithub_pat_[A-Za-z0-9_]{60,}|\bxox[abprs]-[A-Za-z0-9-]{10,}|-----BEGIN (RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----|\bAIza[0-9A-Za-z_-]{35}\b|\bsk-ant-[A-Za-z0-9_-]{20,}|\bsk-(proj-)?[A-Za-z0-9_-]{32,}|\bnpm_[A-Za-z0-9]{36}\b|\bSG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}\b/
+  }),
+  // CI / supply chain (GitHub Actions)
+  {
+    id: "gha.pwn-request",
+    cwe: "CWE-829",
+    title: "pull_request_target runs code from the pull request",
+    confidence: "high",
+    langs: ["yaml"],
+    files: /(^|\/)\.github\/workflows\/[^/]+\.ya?ml$/,
+    match(ctx) {
+      const text = ctx.code.join("\n");
+      if (!/\bpull_request_target\b|\bworkflow_run\b/.test(text)) return [];
+      return ctx.code.flatMap((l, i) => /ref\s*:\s*\$\{\{\s*github\.(event\.pull_request\.head\.(sha|ref)|head_ref)|ref\s*:\s*refs\/pull\/|github\.event\.workflow_run\.head_(sha|branch)/.test(l) ? [{ line: i + 1 }] : []);
+    }
+  },
+  lineRule({
+    id: "gha.script-injection",
+    cwe: "CWE-94",
+    title: "Untrusted event text expanded inside a run script",
+    confidence: "high",
+    langs: ["yaml"],
+    files: /(^|\/)\.github\/workflows\/[^/]+\.ya?ml$/,
+    re: /\$\{\{\s*github\.(event\.(issue|pull_request|comment|review|review_comment|discussion|head_commit|commits|pages)\b[^}]*\.(title|body|name|message|label|ref|email|default_branch|page_name)|head_ref)\b[^}]*\}\}/,
+    needs: (l, ctx, i) => {
+      for (let k = i; k >= Math.max(0, i - 15); k--) {
+        if (/^\s*-?\s*run\s*:/.test(ctx.code[k])) return true;
+        if (/^\s*-?\s*(uses|with|env|if)\s*:/.test(ctx.code[k])) return false;
+      }
+      return false;
+    }
+  }),
+  lineRule({
+    id: "gha.permissions-write-all",
+    cwe: "CWE-250",
+    title: "Workflow token granted write-all",
+    confidence: "medium",
+    langs: ["yaml"],
+    files: /(^|\/)\.github\/workflows\/[^/]+\.ya?ml$/,
+    re: /^\s*permissions\s*:\s*write-all\s*$/
+  })
+];
+
+// src/scan.ts
+var import_node_fs2 = require("node:fs");
+var import_node_path2 = require("node:path");
+var SECRET_RULE = "any.secret.credential-literal";
+function redact(text) {
+  return text.replace(/([A-Za-z0-9_-]{4})[A-Za-z0-9_/+=.-]{8,}/g, (m, keep) => m.length >= 16 ? `${keep}\u2026[redacted]` : m);
+}
+function snippet(line2, rule) {
+  const t = line2.trim().replace(/\s+/g, " ");
+  const s = rule === SECRET_RULE ? redact(t) : t;
+  return s.length > 200 ? s.slice(0, 197) + "\u2026" : s;
+}
+function readDisk(root, path) {
+  try {
+    const p = (0, import_node_path2.join)(root, path);
+    const st = (0, import_node_fs2.statSync)(p);
+    if (!st.isFile() || st.size > MAX_BYTES) return void 0;
+    const text = (0, import_node_fs2.readFileSync)(p, "utf8");
+    return text.includes("\0") ? void 0 : text;
+  } catch {
+    return void 0;
+  }
+}
+function scanText(path, text, rules = RULES) {
+  const lang = langOf(path);
+  const raw = text.split(/\r?\n/);
+  const ctx = { path, lang, raw, code: stripComments(text, lang).split(/\r?\n/) };
+  const out = [];
+  for (const rule of rules) {
+    if (rule.files ? !rule.files.test(path) : rule.langs !== "any" && !rule.langs.includes(lang)) continue;
+    if (rule.files && rule.langs !== "any" && !rule.langs.includes(lang)) continue;
+    for (const h of rule.match(ctx)) out.push({ rule, ...h });
+  }
+  return { raw, hits: out };
+}
+var inHunks = (hunks, line2) => !!hunks?.some(([s, n]) => line2 >= s && line2 < s + n);
+function scan(cwd, opts) {
+  const scope2 = computeScope(cwd, opts.base);
+  const { root, states } = scope2;
+  const byState = (s) => new Map(states[s].filter((f) => f.status !== "deleted").map((f) => [f.path, f.hunks]));
+  const push = byState("push");
+  const index = byState("index");
+  const work = byState("worktree");
+  const untracked = new Set(scope2.untracked);
+  const files = new Set(
+    opts.changedOnly ? [...push.keys(), ...index.keys(), ...work.keys(), ...untracked] : [...trackedFiles(root), ...untracked]
+  );
+  const seen = /* @__PURE__ */ new Set();
+  const candidates = [];
+  const guarded = [];
+  const emit = (path, text, where, onlyChanged) => {
+    const { raw, hits } = scanText(path, text, opts.rules);
+    for (const h of hits) {
+      const changedIn = where(h.line);
+      if (onlyChanged && changedIn === null) continue;
+      const key2 = `${h.rule.id}|${path}|${h.line}|${changedIn}`;
+      if (seen.has(key2)) continue;
+      seen.add(key2);
+      const c = {
+        rule: h.rule.id,
+        cwe: h.rule.cwe,
+        title: h.rule.title,
+        confidence: h.rule.confidence,
+        path,
+        line: h.line,
+        changedIn,
+        snippet: snippet(raw[h.line - 1] ?? "", h.rule.id),
+        ...h.guarded ? { guarded: h.guarded } : {},
+        ...h.note ? { note: h.note } : {}
+      };
+      (h.guarded ? guarded : candidates).push(c);
+    }
+  };
+  let scanned = 0;
+  for (const path of [...files].sort()) {
+    if (skipPath(path)) continue;
+    const disk = readDisk(root, path);
+    const localEdits = index.has(path) || work.has(path);
+    if (untracked.has(path)) {
+      if (disk !== void 0) {
+        emit(path, disk, () => "untracked", false);
+        scanned++;
+      }
+      continue;
+    }
+    if (!localEdits) {
+      if (disk !== void 0) {
+        emit(path, disk, (l) => inHunks(push.get(path), l) ? "push" : null, false);
+        scanned++;
+      }
+      continue;
+    }
+    if (push.has(path)) {
+      const t = readAt(root, "push", path);
+      if (t !== void 0) emit(path, t, (l) => inHunks(push.get(path), l) ? "push" : null, true);
+    }
+    if (index.has(path)) {
+      const t = readAt(root, "index", path);
+      if (t !== void 0) emit(path, t, (l) => inHunks(index.get(path), l) ? "index" : null, true);
+    }
+    if (disk !== void 0) emit(path, disk, (l) => inHunks(work.get(path), l) ? "worktree" : null, false);
+    scanned++;
+  }
+  const order = (c) => c.changedIn ? 0 : 1;
+  const conf = { high: 0, medium: 1, low: 2 };
+  const sort = (a, b) => order(a) - order(b) || conf[a.confidence] - conf[b.confidence] || a.path.localeCompare(b.path) || a.line - b.line;
+  return { scope: scope2, candidates: candidates.sort(sort), guarded: guarded.sort(sort), files: scanned };
+}
+
+// src/surface.ts
+var GUARD_NAME = /\b(login_required|permission_required|user_passes_test|staff_member_required|requires_auth|auth\w*|authenticate\w*|authorize\w*|require\w*(Auth|User|Admin|Role|Login|Permission)\w*|isAuthenticated|ensureLoggedIn|protect\w*|verify\w*Token|jwtCheck|passport\.authenticate|Depends\(\s*get_current\w*|Depends\(\s*\w*(auth|user)\w*|PreAuthorize|Secured|RolesAllowed|before_action\s+:authenticate\w*|middleware\(\s*['"]auth[\w:'",\s]*\)|can\(|policy|Policy|current_user)\b/g;
+var guardsIn = (text) => [...new Set(text.match(GUARD_NAME) ?? [])].slice(0, 6);
+function entryPoints(path, text) {
+  if (skipPath(path)) return [];
+  const lang = langOf(path);
+  const lines = stripComments(text, lang).split(/\r?\n/);
+  const out = [];
+  const push = (e) => out.push({ path, ...e });
+  if (lang === "js") {
+    const nextRoute = /(^|\/)(app|src\/app)\/(.+)\/route\.(t|j)sx?$/.exec(path);
+    const pagesApi = /(^|\/)(pages|src\/pages)\/api\/(.+)\.(t|j)sx?$/.exec(path);
+    lines.forEach((l, i) => {
+      const express = /\b(app|router|server|api|routes?|fastify|r)\.(get|post|put|patch|delete|all|options|head)\s*\(\s*(['"`])([^'"`]+)\3([^;]*)/.exec(l);
+      if (express) push({ kind: "http", framework: "express-like", method: express[2].toUpperCase(), route: express[4], line: i + 1, guards: guardsIn(express[5]) });
+      if (nextRoute) {
+        const m = /export\s+(async\s+)?(function|const)\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/.exec(l);
+        if (m) push({ kind: "http", framework: "next-app-router", method: m[3], route: "/" + nextRoute[3].replace(/\(([^)]+)\)\//g, ""), line: i + 1, guards: guardsIn(lines.slice(i, i + 15).join("\n")) });
+      }
+      if (pagesApi && /export\s+default\b/.test(l)) push({ kind: "http", framework: "next-pages-api", route: "/api/" + pagesApi[3], line: i + 1, guards: guardsIn(lines.slice(i, i + 15).join("\n")) });
+      if (/^\s*["']use server["']/.test(l)) push({ kind: "server-action", framework: "next-server-action", line: i + 1, guards: guardsIn(lines.slice(i, i + 40).join("\n")) });
+      const q = /\bnew\s+Worker\s*\(\s*['"`]([^'"`]+)|\.process\s*\(\s*['"`]([^'"`]+)|cron\.schedule\s*\(/.exec(l);
+      if (q) push({ kind: "job", framework: "queue/cron", route: q[1] ?? q[2], line: i + 1, guards: [] });
+      if (/webhook/i.test(l) && express) out[out.length - 1].kind = "webhook";
+    });
+  } else if (lang === "py") {
+    lines.forEach((l, i) => {
+      const flask = /@\s*(\w+)\.(route|get|post|put|patch|delete|api_route|websocket)\s*\(\s*["']([^"']+)["']([^\n]*)/.exec(l);
+      if (flask) {
+        const methods = /methods\s*=\s*\[([^\]]+)\]/.exec(flask[4])?.[1]?.replace(/["'\s]/g, "");
+        let k = i + 1;
+        const decl = [l];
+        while (k < lines.length && k < i + 12) {
+          decl.push(lines[k]);
+          if (/^\s*(async\s+)?def\s/.test(lines[k])) {
+            decl.push(lines[k + 1] ?? "");
+            break;
+          }
+          k++;
+        }
+        const method = flask[2] === "route" ? methods ?? "GET" : flask[2].toUpperCase();
+        push({ kind: "http", framework: /Depends|APIRouter|FastAPI/.test(text) ? "fastapi" : "flask", method, route: flask[3], line: i + 1, guards: guardsIn(decl.join("\n")) });
+      }
+      const django = /\b(re_)?path\s*\(\s*r?["']([^"']*)["']\s*,\s*([\w.]+)/.exec(l);
+      if (django && /urls\.py$/.test(path)) push({ kind: "http", framework: "django", route: "/" + django[2], line: i + 1, guards: guardsIn(l) });
+      if (/@(shared_task|app\.task|celery\.task|dramatiq\.actor)\b/.test(l)) push({ kind: "job", framework: "celery/dramatiq", line: i + 1, guards: [] });
+    });
+  } else if (lang === "java") {
+    lines.forEach((l, i) => {
+      const m = /@(Get|Post|Put|Patch|Delete|Request)Mapping\s*(\(\s*(value\s*=\s*)?\{?\s*"([^"]*)")?/.exec(l);
+      if (m) push({ kind: "http", framework: "spring", method: m[1] === "Request" ? void 0 : m[1].toUpperCase(), route: m[4], line: i + 1, guards: guardsIn(lines.slice(Math.max(0, i - 4), i + 1).join("\n")) });
+    });
+  } else if (lang === "go") {
+    lines.forEach((l, i) => {
+      const m = /\.(HandleFunc|Handle|GET|POST|PUT|PATCH|DELETE|Get|Post|Put|Patch|Delete|Any)\s*\(\s*"([^"]+)"([^\n]*)/.exec(l);
+      if (m) push({ kind: "http", framework: "go-http", method: /Handle/.test(m[1]) ? void 0 : m[1].toUpperCase(), route: m[2], line: i + 1, guards: guardsIn(m[3]) });
+    });
+  } else if (lang === "rb" && /config\/routes\.rb$/.test(path)) {
+    lines.forEach((l, i) => {
+      const m = /^\s*(get|post|put|patch|delete|resources?|match)\s+["':]?([\w/:.-]+)/.exec(l);
+      if (m) push({ kind: "http", framework: "rails", method: /^(get|post|put|patch|delete)$/.test(m[1]) ? m[1].toUpperCase() : void 0, route: m[2], line: i + 1, guards: [] });
+    });
+  } else if (lang === "php") {
+    lines.forEach((l, i) => {
+      const m = /Route::(get|post|put|patch|delete|any|match|resource|apiResource)\s*\(\s*['"]([^'"]+)['"]([^;]*)/.exec(l);
+      if (m) push({ kind: "http", framework: "laravel", method: m[1].toUpperCase(), route: m[2], line: i + 1, guards: guardsIn(m[3]) });
+    });
+  } else if (lang === "yaml" && /(^|\/)\.github\/workflows\//.test(path)) {
+    lines.forEach((l, i) => {
+      const m = /^\s*(-\s*)?(pull_request_target|pull_request|push|workflow_run|issue_comment|issues|workflow_dispatch|schedule|release|discussion_comment|pull_request_review_comment)\s*:?\s*$|^\s*on\s*:\s*\[?([\w, ]+)\]?\s*$/.exec(l);
+      if (m) push({ kind: "ci-trigger", framework: "github-actions", route: m[2] ?? m[3]?.trim(), line: i + 1, guards: [] });
+    });
+  }
+  return out;
+}
+
+// src/commands/evidence.ts
+var SCOPE_HELP = `abliterate scope [--base REF]
+  Verified review states: commits since the merge-base (push), staged (index), unstaged (worktree), untracked.
+  Never fetches or changes branches; diff drivers and textconv are disabled.`;
+var SINKS_HELP = `abliterate sinks [--base REF] [--changed] [--include-guarded] [--rule ID,...] [--format json|md]
+  Candidate vulnerable code by CWE, each marked with the snapshot that changed it (push, index, worktree,
+  untracked) or null when it predates the change. Candidates must be traced and confirmed; they are not findings.`;
+var SURFACE_HELP = `abliterate surface [--base REF] [--changed] [--format json|md]
+  Entry points (HTTP routes, server actions, jobs, webhooks, CI triggers) and the auth names on each declaration.`;
+function scope(flags, cwd) {
+  allowFlags(flags, ["base"]);
+  print(computeScope(cwd, str(flags, "base")));
+  return EXIT.ok;
+}
+var fmt = (flags) => {
+  const f = str(flags, "format") ?? "json";
+  if (f !== "json" && f !== "md") throw new UsageError("--format must be json or md");
+  return f;
+};
+function candidatesMd(cs, guarded) {
+  const row = (c) => `| ${c.changedIn ?? "before"} | ${c.cwe} | \`${c.path}:${c.line}\` | ${c.rule} | ${c.confidence} | \`${c.snippet.replace(/\|/g, "\\|").replace(/`/g, "'")}\` |`;
+  const out = ["| changed in | CWE | location | rule | confidence | code |", "| --- | --- | --- | --- | --- | --- |", ...cs.map(row)];
+  if (guarded.length) out.push("", `${guarded.length} more candidate(s) had a recognised guard in the same block; rerun with --include-guarded to list them.`);
+  return out.join("\n") + "\n";
+}
+function sinks(flags, cwd) {
+  allowFlags(flags, ["base", "changed", "include-guarded", "rule", "format"]);
+  const format = fmt(flags);
+  const ids = str(flags, "rule")?.split(",").map((s) => s.trim()).filter(Boolean);
+  const rules = ids ? RULES.filter((r2) => ids.includes(r2.id)) : RULES;
+  if (ids && rules.length !== ids.length) throw new UsageError(`unknown rule id in --rule; known: ${RULES.map((r2) => r2.id).join(", ")}`);
+  const r = scan(cwd, { base: str(flags, "base"), changedOnly: flags.changed === true, rules });
+  const includeGuarded = flags["include-guarded"] === true;
+  if (format === "md") {
+    process.stdout.write(candidatesMd(includeGuarded ? [...r.candidates, ...r.guarded] : r.candidates, includeGuarded ? [] : r.guarded));
+    return EXIT.ok;
+  }
+  print({
+    base: r.scope.base ?? null,
+    mergeBase: r.scope.mergeBase ?? null,
+    head: r.scope.head ?? null,
+    notes: r.scope.notes,
+    filesScanned: r.files,
+    candidates: r.candidates,
+    ...includeGuarded ? { guarded: r.guarded } : { guardedCount: r.guarded.length },
+    reminder: "Candidates are leads. Trace each from source to sink, look for the guard on that path, and try to disprove it before reporting."
+  });
+  return EXIT.ok;
+}
+function surface(flags, cwd) {
+  allowFlags(flags, ["base", "changed", "format"]);
+  const format = fmt(flags);
+  const sc = computeScope(cwd, str(flags, "base"));
+  const changed = /* @__PURE__ */ new Map();
+  for (const s of ["push", "index", "worktree"]) for (const f of sc.states[s]) changed.set(f.path, [...changed.get(f.path) ?? [], ...f.hunks]);
+  for (const u of sc.untracked) changed.set(u, [[1, Number.MAX_SAFE_INTEGER]]);
+  const files = flags.changed === true ? [...changed.keys()] : [.../* @__PURE__ */ new Set([...trackedFiles(sc.root), ...sc.untracked])];
+  const eps = [];
+  for (const path of files.sort()) {
+    let text;
+    try {
+      const p = (0, import_node_path3.join)(sc.root, path);
+      if ((0, import_node_fs3.statSync)(p).size > MAX_BYTES) continue;
+      text = (0, import_node_fs3.readFileSync)(p, "utf8");
+    } catch {
+      continue;
+    }
+    for (const e of entryPoints(path, text)) {
+      const hunks = changed.get(path);
+      eps.push({ ...e, changed: !!hunks?.some(([s, n]) => e.line >= s && e.line < s + n) });
+    }
+  }
+  if (format === "md") {
+    process.stdout.write([
+      "| changed | kind | method | route | location | guards on declaration |",
+      "| --- | --- | --- | --- | --- | --- |",
+      ...eps.map((e) => `| ${e.changed ? "yes" : ""} | ${e.kind} | ${e.method ?? ""} | ${e.route ?? ""} | \`${e.path}:${e.line}\` | ${e.guards.join(", ") || "none seen"} |`)
+    ].join("\n") + "\n");
+    return EXIT.ok;
+  }
+  print({ entryPoints: eps, note: "Guards listed are names on the declaration only; global middleware and policies elsewhere must be checked in the code." });
+  return EXIT.ok;
+}
+
+// src/commands/deps.ts
+var import_node_fs6 = require("node:fs");
+var import_node_path6 = require("node:path");
+
+// src/deps/net.ts
+var import_node_crypto = require("node:crypto");
+var import_node_fs4 = require("node:fs");
+var import_node_os = require("node:os");
+var import_node_path4 = require("node:path");
+var ENDPOINTS = {
+  osvBatch: "https://api.osv.dev/v1/querybatch",
+  osvVuln: (id) => `https://api.osv.dev/v1/vulns/${encodeURIComponent(id)}`,
+  kev: "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+  epss: (cves) => `https://api.first.org/data/v1/epss?cve=${cves.map(encodeURIComponent).join(",")}`,
+  githubPatch: (owner, repo, sha) => `https://github.com/${owner}/${repo}/commit/${sha}.patch`
+};
+var TIMEOUT_MS = 2e4;
+function cacheDir() {
+  const base = process.env.ABLITERATE_CACHE_DIR || (0, import_node_path4.join)(process.env.XDG_CACHE_HOME || (0, import_node_path4.join)((0, import_node_os.homedir)(), ".cache"), "abliterate");
+  (0, import_node_fs4.mkdirSync)(base, { recursive: true });
+  return base;
+}
+var key = (url, body) => (0, import_node_crypto.createHash)("sha256").update(url + "\n" + (body ?? "")).digest("hex").slice(0, 32);
+function makeHttp(offline) {
+  const replay = process.env.ABLITERATE_HTTP_REPLAY;
+  const record = process.env.ABLITERATE_HTTP_RECORD;
+  const dir = replay || cacheDir();
+  const failures = [];
+  async function go(method, url, body, maxAgeMs, text) {
+    const payload = body === void 0 ? void 0 : JSON.stringify(body);
+    const file = (0, import_node_path4.join)(dir, `${key(url, payload)}.${text ? "txt" : "json"}`);
+    const fresh = (0, import_node_fs4.existsSync)(file) && (replay || Date.now() - (0, import_node_fs4.statSync)(file).mtimeMs < maxAgeMs);
+    if (fresh) {
+      const raw = (0, import_node_fs4.readFileSync)(file, "utf8");
+      return text ? raw : JSON.parse(raw);
+    }
+    if (offline || replay) {
+      if ((0, import_node_fs4.existsSync)(file)) {
+        const raw = (0, import_node_fs4.readFileSync)(file, "utf8");
+        return text ? raw : JSON.parse(raw);
+      }
+      return void 0;
+    }
+    try {
+      const res = await fetch(url, {
+        method,
+        body: payload,
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        headers: { "content-type": "application/json", "user-agent": "abliterate-cli" }
+      });
+      if (!res.ok) {
+        failures.push(`${method} ${new URL(url).host} \u2192 HTTP ${res.status}`);
+        return void 0;
+      }
+      const raw = await res.text();
+      (0, import_node_fs4.writeFileSync)(file, raw);
+      if (record) {
+        (0, import_node_fs4.mkdirSync)(record, { recursive: true });
+        (0, import_node_fs4.writeFileSync)((0, import_node_path4.join)(record, `${key(url, payload)}.${text ? "txt" : "json"}`), raw);
+      }
+      return text ? raw : JSON.parse(raw);
+    } catch (err) {
+      failures.push(`${method} ${new URL(url).host} \u2192 ${err.name === "TimeoutError" ? "timeout" : err.message}`);
+      if ((0, import_node_fs4.existsSync)(file)) {
+        const raw = (0, import_node_fs4.readFileSync)(file, "utf8");
+        return text ? raw : JSON.parse(raw);
+      }
+      return void 0;
+    }
+  }
+  return {
+    offline,
+    failures,
+    get: (url, o = {}) => go("GET", url, void 0, o.maxAgeMs ?? 24 * 36e5, !!o.text),
+    post: (url, body, o = {}) => go("POST", url, body, o.maxAgeMs ?? 12 * 36e5, false)
+  };
+}
+
+// src/deps/advisories.ts
+var BATCH = 1e3;
+var EPSS_BATCH = 100;
+var sevLabel = (s) => {
+  const v = s?.toLowerCase();
+  return v === "critical" || v === "high" || v === "low" ? v : v === "moderate" || v === "medium" ? "medium" : void 0;
+};
+function symbolsFrom(v, pkg) {
+  const out = /* @__PURE__ */ new Set();
+  for (const a of v.affected ?? []) {
+    for (const imp of a.ecosystem_specific?.imports ?? []) for (const s of imp.symbols ?? []) out.add(s);
+    for (const f of a.ecosystem_specific?.affected_functions ?? a.database_specific?.affected_functions ?? []) out.add(f.split(/[.:#]/).pop());
+  }
+  const text = `${v.summary ?? ""}
+${v.details ?? ""}`;
+  for (const m of text.matchAll(/`(?:[\w$]+\.)*([A-Za-z_$][\w$]{2,})(?:\(\))?`/g)) if (m[1] !== pkg) out.add(m[1]);
+  for (const m of text.matchAll(/\b(?:the\s+)?([A-Za-z_$][\w$]{2,})\s+(?:function|method)\b/g)) if (!/^(this|the|a|an|vulnerable|affected|same|internal|helper)$/i.test(m[1])) out.add(m[1]);
+  return [...out].slice(0, 12);
+}
+function fixedFor(v, dep) {
+  for (const a of v.affected ?? []) {
+    if (a.package && (a.package.name !== dep.name || a.package.ecosystem !== dep.ecosystem)) continue;
+    for (const r of a.ranges ?? []) for (const e of r.events) if (e.fixed) return e.fixed;
+  }
+  return void 0;
+}
+async function lookup(deps2, http) {
+  const results = /* @__PURE__ */ new Map();
+  const unique = /* @__PURE__ */ new Map();
+  for (const d of deps2) {
+    const k = `${d.ecosystem}|${d.name}|${d.version}`;
+    unique.set(k, [...unique.get(k) ?? [], d]);
+  }
+  const keys = [...unique.keys()];
+  let checked = 0;
+  let complete = true;
+  const ids = /* @__PURE__ */ new Map();
+  for (let i = 0; i < keys.length; i += BATCH) {
+    const slice = keys.slice(i, i + BATCH);
+    const body = { queries: slice.map((k) => {
+      const [ecosystem, name, version] = k.split("|");
+      return { package: { name, ecosystem }, version };
+    }) };
+    const res = await http.post(ENDPOINTS.osvBatch, body);
+    if (!res?.results) {
+      complete = false;
+      continue;
+    }
+    res.results.forEach((r, j) => {
+      checked++;
+      if (r.vulns?.length) ids.set(slice[j], r.vulns.map((v) => v.id));
+    });
+  }
+  const details = /* @__PURE__ */ new Map();
+  for (const id of new Set([...ids.values()].flat())) {
+    const v = await http.get(ENDPOINTS.osvVuln(id), { maxAgeMs: 7 * 24 * 36e5 });
+    if (v) details.set(id, v);
+    else complete = false;
+  }
+  const kevFeed = await http.get(ENDPOINTS.kev);
+  const kev = new Set(kevFeed?.vulnerabilities?.map((v) => v.cveID) ?? []);
+  if (!kevFeed) complete = false;
+  const cves = [...new Set([...details.values()].flatMap((v) => [v.id, ...v.aliases ?? []]).filter((a) => a.startsWith("CVE-")))];
+  const epss = /* @__PURE__ */ new Map();
+  for (let i = 0; i < cves.length; i += EPSS_BATCH) {
+    const r = await http.get(ENDPOINTS.epss(cves.slice(i, i + EPSS_BATCH)));
+    if (!r?.data) {
+      complete = false;
+      continue;
+    }
+    for (const d of r.data) epss.set(d.cve, { epss: Number(d.epss), percentile: Number(d.percentile) });
+  }
+  for (const [k, vulnIds] of ids) {
+    const sample = unique.get(k)[0];
+    const infos = [];
+    for (const id of vulnIds) {
+      const v = details.get(id);
+      if (!v) {
+        infos.push({ id, aliases: [], summary: "(details unavailable)", cwe: [], symbols: [], fixCommits: [] });
+        continue;
+      }
+      const aliases = (v.aliases ?? []).filter((a) => a !== v.id);
+      const cveIds = [v.id, ...aliases].filter((a) => a.startsWith("CVE-"));
+      const scores = cveIds.map((c) => epss.get(c)).filter(Boolean);
+      infos.push({
+        id: v.id,
+        aliases,
+        summary: v.summary ?? (v.details ?? "").split("\n")[0].slice(0, 200),
+        severity: sevLabel(v.database_specific?.severity),
+        cvss: v.severity?.find((s) => s.type.startsWith("CVSS"))?.score,
+        cwe: v.database_specific?.cwe_ids ?? [],
+        fixed: fixedFor(v, sample),
+        kev: cveIds.some((c) => kev.has(c)),
+        ...scores.length ? { epss: Math.max(...scores.map((s) => s.epss)), epssPercentile: Math.max(...scores.map((s) => s.percentile)) } : {},
+        symbols: symbolsFrom(v, sample.name),
+        fixCommits: (v.references ?? []).filter((r) => r.type === "FIX" || /\/commit\/[0-9a-f]{7,40}/.test(r.url)).map((r) => r.url).filter((u) => /github\.com\/[^/]+\/[^/]+\/commit\/[0-9a-f]{7,40}/.test(u))
+      });
+    }
+    const seen = /* @__PURE__ */ new Set();
+    const dedup = infos.filter((a) => {
+      const all = [a.id, ...a.aliases];
+      if (all.some((x) => seen.has(x))) return false;
+      all.forEach((x) => seen.add(x));
+      return true;
+    });
+    for (const d of unique.get(k)) results.set(d, dedup);
+  }
+  return { results, checked, complete };
+}
+function priority(a) {
+  const sev = { critical: 4, high: 3, medium: 2, low: 1 }[a.severity ?? "low"] ?? 0;
+  return (a.kev ? 100 : 0) + (a.epss ?? 0) * 10 + sev;
+}
+
+// src/deps/lockfiles.ts
+var LOCKFILES = {
+  "package-lock.json": "npm",
+  "npm-shrinkwrap.json": "npm",
+  "pnpm-lock.yaml": "npm",
+  "yarn.lock": "npm",
+  "poetry.lock": "PyPI",
+  "uv.lock": "PyPI",
+  "Pipfile.lock": "PyPI",
+  "requirements.txt": "PyPI",
+  "go.mod": "Go",
+  "Cargo.lock": "crates.io",
+  "Gemfile.lock": "RubyGems",
+  "composer.lock": "Packagist"
+};
+var isLockfile = (path) => {
+  const base = path.split("/").pop();
+  return base in LOCKFILES || /^requirements[\w.-]*\.txt$/.test(base);
+};
+function lineOf(lines, needle, from = 0) {
+  for (let i = from; i < lines.length; i++) if (needle.test(lines[i])) return i + 1;
+  return 1;
+}
+var esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function npmLock(file, text, lines) {
+  const data = JSON.parse(text);
+  const out = [];
+  if (data.packages) {
+    for (const [key2, v] of Object.entries(data.packages)) {
+      if (!key2 || v.link || !v.version) continue;
+      const name = key2.slice(key2.lastIndexOf("node_modules/") + "node_modules/".length);
+      out.push({ ecosystem: "npm", name, version: v.version, file, line: lineOf(lines, new RegExp(`"${esc(key2)}"`)) });
+    }
+  } else if (data.dependencies) {
+    const walk = (deps2) => {
+      for (const [name, v] of Object.entries(deps2)) {
+        if (v.version && !/^(file|link|git)/.test(v.version)) out.push({ ecosystem: "npm", name, version: v.version, file, line: lineOf(lines, new RegExp(`"${esc(name)}"\\s*:\\s*\\{`)) });
+        if (v.dependencies) walk(v.dependencies);
+      }
+    };
+    walk(data.dependencies);
+  }
+  return out;
+}
+function pnpmLock(file, lines) {
+  const out = [];
+  let inPackages = false;
+  lines.forEach((l, i) => {
+    if (/^(packages|snapshots):\s*$/.test(l)) {
+      inPackages = l.startsWith("packages");
+      return;
+    }
+    if (/^\S/.test(l)) inPackages = false;
+    if (!inPackages) return;
+    const m = /^ {2}['"]?\/?((?:@[^/@\s]+\/)?[^@\s'"]+)@([0-9][^(:'"\s]*)/.exec(l);
+    if (m) out.push({ ecosystem: "npm", name: m[1], version: m[2], file, line: i + 1 });
+  });
+  return out;
+}
+function yarnLock(file, lines) {
+  const out = [];
+  let names = [];
+  let at = 0;
+  lines.forEach((l, i) => {
+    if (/^\S.*:\s*$/.test(l) && !l.startsWith("#") && !l.startsWith("__metadata")) {
+      names = l.replace(/:\s*$/, "").split(/,\s*/).map((s) => s.replace(/^"|"$/g, "").replace(/@(npm:)?[^@]*$/, "")).filter(Boolean);
+      at = i + 1;
+      return;
+    }
+    const v = /^\s+version:?\s+"?([^"\s]+)"?/.exec(l);
+    if (v && names.length) {
+      out.push({ ecosystem: "npm", name: names[0], version: v[1], file, line: at });
+      names = [];
+    }
+  });
+  return out;
+}
+function tomlPackages(file, lines, ecosystem) {
+  const out = [];
+  let name;
+  let at = 0;
+  lines.forEach((l, i) => {
+    if (/^\[\[package\]\]/.test(l)) {
+      name = void 0;
+      at = i + 1;
+      return;
+    }
+    const n = /^name\s*=\s*"([^"]+)"/.exec(l);
+    if (n) {
+      name = n[1];
+      return;
+    }
+    const v = /^version\s*=\s*"([^"]+)"/.exec(l);
+    if (v && name) {
+      out.push({ ecosystem, name, version: v[1], file, line: at });
+      name = void 0;
+    }
+  });
+  return out;
+}
+function requirements(file, lines) {
+  return lines.flatMap((l, i) => {
+    const m = /^\s*([A-Za-z0-9][A-Za-z0-9._-]*)(\[[^\]]*\])?\s*==\s*([A-Za-z0-9.+!_-]+)/.exec(l);
+    return m ? [{ ecosystem: "PyPI", name: m[1], version: m[3], file, line: i + 1 }] : [];
+  });
+}
+function pipfileLock(file, text, lines) {
+  const data = JSON.parse(text);
+  const out = [];
+  for (const section of ["default", "develop"]) {
+    for (const [name, v] of Object.entries(data[section] ?? {})) {
+      const m = /^==(.+)$/.exec(v.version ?? "");
+      if (m) out.push({ ecosystem: "PyPI", name, version: m[1], file, line: lineOf(lines, new RegExp(`"${esc(name)}"\\s*:`)) });
+    }
+  }
+  return out;
+}
+function goMod(file, lines) {
+  let block2 = false;
+  return lines.flatMap((l, i) => {
+    if (/^require\s*\(/.test(l)) {
+      block2 = true;
+      return [];
+    }
+    if (block2 && /^\)/.test(l)) {
+      block2 = false;
+      return [];
+    }
+    const m = (block2 ? /^\s*([^\s]+)\s+(v[^\s]+)/ : /^require\s+([^\s]+)\s+(v[^\s]+)/).exec(l);
+    return m ? [{ ecosystem: "Go", name: m[1], version: m[2], file, line: i + 1 }] : [];
+  });
+}
+function gemfileLock(file, lines) {
+  let specs = false;
+  return lines.flatMap((l, i) => {
+    if (/^\s{2}specs:\s*$/.test(l)) {
+      specs = true;
+      return [];
+    }
+    if (/^\S/.test(l)) specs = false;
+    const m = specs ? /^ {4}([A-Za-z0-9_.-]+) \(([^)\s]+)\)/.exec(l) : null;
+    return m ? [{ ecosystem: "RubyGems", name: m[1], version: m[2], file, line: i + 1 }] : [];
+  });
+}
+function composerLock(file, text, lines) {
+  const data = JSON.parse(text);
+  return [...data.packages ?? [], ...data["packages-dev"] ?? []].map((p) => ({
+    ecosystem: "Packagist",
+    name: p.name,
+    version: p.version.replace(/^v/, ""),
+    file,
+    line: lineOf(lines, new RegExp(`"name"\\s*:\\s*"${esc(p.name)}"`))
+  }));
+}
+function parseLockfile(file, text) {
+  const base = file.split("/").pop();
+  const lines = text.split(/\r?\n/);
+  switch (base) {
+    case "package-lock.json":
+    case "npm-shrinkwrap.json":
+      return npmLock(file, text, lines);
+    case "pnpm-lock.yaml":
+      return pnpmLock(file, lines);
+    case "yarn.lock":
+      return yarnLock(file, lines);
+    case "poetry.lock":
+    case "uv.lock":
+      return tomlPackages(file, lines, "PyPI");
+    case "Cargo.lock":
+      return tomlPackages(file, lines, "crates.io");
+    case "Pipfile.lock":
+      return pipfileLock(file, text, lines);
+    case "go.mod":
+      return goMod(file, lines);
+    case "Gemfile.lock":
+      return gemfileLock(file, lines);
+    case "composer.lock":
+      return composerLock(file, text, lines);
+    default:
+      return /^requirements[\w.-]*\.txt$/.test(base) ? requirements(file, lines) : [];
+  }
+}
+
+// src/deps/reachability.ts
+var import_node_fs5 = require("node:fs");
+var import_node_path5 = require("node:path");
+var esc2 = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function importPattern(ecosystem, name) {
+  const n = esc2(name);
+  switch (ecosystem) {
+    case "npm":
+      return new RegExp(`(require\\(\\s*|from\\s+|import\\s*\\(\\s*|import\\s+)["']${n}(/[^"']*)?["']`);
+    case "PyPI": {
+      const mod = esc2(name.toLowerCase().replace(/-/g, "_"));
+      return new RegExp(`^\\s*(from\\s+${mod}(\\.|\\s)|import\\s+${mod}\\b)`, "i");
+    }
+    case "Go":
+      return new RegExp(`"${n}(/[^"]*)?"`);
+    case "RubyGems":
+      return new RegExp(`require\\s+["']${n}`);
+    case "crates.io":
+      return new RegExp(`\\b(use|extern crate)\\s+${esc2(name.replace(/-/g, "_"))}\\b`);
+    case "Packagist":
+      return void 0;
+  }
+}
+var SOURCE_LANGS = {
+  npm: ["js"],
+  PyPI: ["py"],
+  Go: ["go"],
+  RubyGems: ["rb"],
+  "crates.io": ["other"],
+  Packagist: ["php"]
+};
+function reachability(root, files, ecosystem, name, symbols) {
+  const pat = importPattern(ecosystem, name);
+  if (!pat) return { verdict: "unknown", imports: [], symbolUses: [] };
+  const imports = [];
+  const symbolUses = [];
+  const symRe = symbols.length ? new RegExp(`(?:[.\\s(:]|^)(${symbols.map(esc2).join("|")})\\s*\\(`) : void 0;
+  for (const path of files) {
+    if (skipPath(path)) continue;
+    const lang = langOf(path);
+    if (!SOURCE_LANGS[ecosystem].includes(lang) && !(ecosystem === "crates.io" && path.endsWith(".rs"))) continue;
+    let text;
+    try {
+      const p = (0, import_node_path5.join)(root, path);
+      if ((0, import_node_fs5.statSync)(p).size > MAX_BYTES) continue;
+      text = stripComments((0, import_node_fs5.readFileSync)(p, "utf8"), lang);
+    } catch {
+      continue;
+    }
+    const lines = text.split(/\r?\n/);
+    let imported = false;
+    lines.forEach((l, i) => {
+      if (pat.test(l)) {
+        imported = true;
+        imports.push({ path, line: i + 1 });
+      }
+    });
+    if (!imported || !symRe) continue;
+    lines.forEach((l, i) => {
+      const m = symRe.exec(l);
+      if (m) symbolUses.push({ path, line: i + 1, symbol: m[1] });
+    });
+  }
+  const verdict = symbolUses.length ? "symbol-used" : imports.length ? "imported" : "not-imported";
+  return { verdict, imports: imports.slice(0, 20), symbolUses: symbolUses.slice(0, 20) };
+}
+
+// src/commands/deps.ts
+var DEPS_HELP = `abliterate deps [--base REF] [--offline] [--changed] [--inventory] [--format json|md]
+  Resolved dependencies from lockfiles \u2192 known vulnerabilities (OSV), CISA KEV, EPSS, and a
+  reachability hint (is the package imported, is the named function called). Marks dependencies
+  the change introduced or bumped. Sends only package names and versions; --offline uses the cache.
+  --inventory lists the resolved packages and exits without any network access.`;
+async function deps(flags, cwd) {
+  allowFlags(flags, ["base", "offline", "changed", "inventory", "format"]);
+  const format = str(flags, "format") ?? "json";
+  if (format !== "json" && format !== "md") throw new UsageError("--format must be json or md");
+  const sc = computeScope(cwd, str(flags, "base"));
+  const all = [.../* @__PURE__ */ new Set([...trackedFiles(sc.root), ...sc.untracked])];
+  const lockfiles = all.filter((p) => isLockfile(p) && !skipPath(p.replace(/(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/, "x")));
+  const notes = [...sc.notes];
+  const current = [];
+  const before = /* @__PURE__ */ new Set();
+  for (const file of lockfiles) {
+    try {
+      current.push(...parseLockfile(file, (0, import_node_fs6.readFileSync)((0, import_node_path6.join)(sc.root, file), "utf8")));
+    } catch (err) {
+      notes.push(`Could not parse ${file}: ${err.message}`);
+    }
+    if (sc.mergeBase) {
+      const old = git(sc.root, ["cat-file", "-p", `${sc.mergeBase}:${file}`], { allowFail: true });
+      if (old) try {
+        for (const d of parseLockfile(file, old)) before.add(`${d.ecosystem}|${d.name}|${d.version}`);
+      } catch {
+      }
+    }
+  }
+  const introduced = (d) => !!sc.mergeBase && !before.has(`${d.ecosystem}|${d.name}|${d.version}`);
+  const scoped = flags.changed === true ? current.filter(introduced) : current;
+  if (flags.inventory === true) {
+    print({ lockfiles, packages: scoped.map((d) => ({ ...d, introduced: introduced(d) })), notes });
+    return EXIT.ok;
+  }
+  const http = makeHttp(flags.offline === true);
+  const { results, checked, complete } = await lookup(scoped, http);
+  if (http.failures.length) notes.push(...[...new Set(http.failures)].map((f) => `Network: ${f}`));
+  if (!complete) notes.push(flags.offline === true ? "Offline: some packages or advisories were not in the cache and were not checked." : "Some lookups failed: results are incomplete.");
+  const vulnerable = [...results.entries()].map(([d, advisories]) => {
+    const symbols = [...new Set(advisories.flatMap((a) => a.symbols))];
+    const reach = reachability(sc.root, all, d.ecosystem, d.name, symbols);
+    return {
+      ecosystem: d.ecosystem,
+      package: d.name,
+      version: d.version,
+      file: d.file,
+      line: d.line,
+      introduced: introduced(d),
+      imports: reach.imports,
+      // Reachability is judged per advisory: only the symbols that advisory names count.
+      advisories: advisories.sort((a, b) => priority(b) - priority(a)).map((a) => {
+        const uses = reach.symbolUses.filter((u) => a.symbols.includes(u.symbol));
+        const verdict = reach.verdict === "unknown" ? "unknown" : uses.length ? "symbol-used" : reach.imports.length ? a.symbols.length ? "imported-symbol-not-seen" : "imported" : "not-imported";
+        return { ...a, reachability: { verdict, symbolUses: uses } };
+      })
+    };
+  }).sort((a, b) => Number(b.introduced) - Number(a.introduced) || priority(b.advisories[0]) - priority(a.advisories[0]));
+  const out = {
+    base: sc.base ?? null,
+    mergeBase: sc.mergeBase ?? null,
+    lockfiles,
+    packages: current.length,
+    checked,
+    complete,
+    vulnerable,
+    notes,
+    guidance: "Confirm only what the code reaches: a vulnerable function called with data an attacker controls. KEV-listed advisories outrank EPSS, which outranks CVSS. Unreached advisories are upgrade hygiene, not findings."
+  };
+  if (format === "md") {
+    const rows = vulnerable.flatMap((v) => v.advisories.map((a) => `| ${v.introduced ? "yes" : ""} | ${v.package}@${v.version} | ${a.id}${a.aliases[0] ? ` (${a.aliases.find((x) => x.startsWith("CVE-")) ?? a.aliases[0]})` : ""} | ${a.severity ?? "?"} | ${a.kev ? "**KEV**" : ""} | ${a.epss !== void 0 ? a.epss.toFixed(3) : ""} | ${a.fixed ?? ""} | ${a.reachability.verdict} | ${a.summary.replace(/\|/g, "/")} |`));
+    process.stdout.write([
+      `${current.length} packages in ${lockfiles.length} lockfile(s); ${checked} checked.${complete ? "" : " **Incomplete.**"}`,
+      "",
+      "| introduced | package | advisory | severity | KEV | EPSS | fixed in | reachability | summary |",
+      "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+      ...rows,
+      ...notes.map((n) => `
+> ${n}`)
+    ].join("\n") + "\n");
+  } else print(out);
+  return EXIT.ok;
+}
+
+// src/commands/draft.ts
+var import_node_fs7 = require("node:fs");
+var import_node_path7 = require("node:path");
+var DRAFT_HELP = `abliterate draft --sinks sinks.json [--deps deps.json] [--variants variants.json] --out findings.json
+  Turns engine evidence for code the change introduced into a findings file where every entry is
+  "needs-evidence". Used when no agent is configured: nothing is confirmed without a trace.
+  Prints the number of high-confidence candidates on stdout.`;
+var CWE_SEVERITY = {
+  "CWE-89": "high",
+  "CWE-943": "high",
+  "CWE-78": "high",
+  "CWE-94": "high",
+  "CWE-502": "high",
+  "CWE-918": "high",
+  "CWE-22": "high",
+  "CWE-798": "high",
+  "CWE-347": "high",
+  "CWE-829": "high",
+  "CWE-79": "medium",
+  "CWE-639": "medium",
+  "CWE-601": "medium",
+  "CWE-1321": "medium",
+  "CWE-295": "medium",
+  "CWE-330": "medium",
+  "CWE-250": "medium"
+};
+var load = (cwd, p) => p ? JSON.parse((0, import_node_fs7.readFileSync)((0, import_node_path7.resolve)(cwd, p), "utf8")) : void 0;
+function draft(flags, cwd) {
+  allowFlags(flags, ["sinks", "deps", "variants", "out"]);
+  const out = str(flags, "out");
+  if (!out || !str(flags, "sinks")) throw new UsageError("draft needs --sinks and --out");
+  const sinks2 = load(cwd, str(flags, "sinks"));
+  const deps2 = load(cwd, str(flags, "deps"));
+  const variants2 = load(cwd, str(flags, "variants"));
+  const findings = [];
+  let n = 0;
+  let high = 0;
+  const seen = /* @__PURE__ */ new Set();
+  const add = (c, source, extra = "") => {
+    if (c.changedIn !== "push" || c.confidence === "low") return;
+    const key2 = `${c.path}:${c.line}:${c.cwe}`;
+    if (seen.has(key2)) return;
+    seen.add(key2);
+    if (c.confidence === "high") high++;
+    findings.push({
+      id: `ABL-C${++n}`,
+      title: c.title,
+      status: "needs-evidence",
+      severity: CWE_SEVERITY[c.cwe] ?? "low",
+      confidence: c.confidence,
+      cwe: [c.cwe],
+      snapshot: "push",
+      source,
+      location: { path: c.path, startLine: c.line },
+      rule: `Untraced candidate (${c.rule})`,
+      actor: "Not established: no trace yet",
+      impact: c.title,
+      evidence: `Engine rule ${c.rule} matched code introduced by this change: ${c.snippet}${extra}`,
+      decisiveEvidence: "Whether attacker-controlled data reaches this line on a real route without an effective guard."
+    });
+  };
+  for (const c of sinks2.candidates) add(c, "review");
+  for (const v of variants2?.variants ?? []) add(v, "variants", ` (same pattern as the fix ${v.seed})`);
+  for (const d of deps2?.vulnerable ?? []) {
+    if (!d.introduced) continue;
+    for (const a of d.advisories) {
+      if (a.reachability.verdict !== "symbol-used" && !a.kev) continue;
+      const use = a.reachability.symbolUses[0];
+      findings.push({
+        id: `ABL-C${++n}`,
+        title: `${d.package}@${d.version}: ${a.summary}`,
+        status: "needs-evidence",
+        severity: a.severity ?? "medium",
+        confidence: use ? "medium" : "low",
+        cwe: a.cwe.length ? a.cwe.filter((c) => /^CWE-\d+$/.test(c)) : ["CWE-1395"],
+        snapshot: "push",
+        source: "deps",
+        location: { path: d.file, startLine: d.line },
+        ...use ? { trace: [{ path: use.path, startLine: use.line, note: `calls ${use.symbol}` }] } : {},
+        rule: "Dependencies with known vulnerabilities are not reachable from attacker-controlled input",
+        actor: "Not established: no trace yet",
+        impact: a.summary,
+        evidence: `${a.id} affects ${d.package}@${d.version}${a.kev ? " (CISA KEV)" : ""}; reachability: ${a.reachability.verdict}.`,
+        decisiveEvidence: use ? `Whether the arguments of ${use.symbol} at ${use.path}:${use.line} are attacker-controlled.` : "Whether the vulnerable feature is used at all.",
+        advisory: { id: a.id, aliases: a.aliases, ecosystem: d.ecosystem, package: d.package, version: d.version, ...a.fixed ? { fixed: a.fixed } : {}, ...a.kev !== void 0 ? { kev: a.kev } : {}, ...a.epss !== void 0 ? { epss: a.epss } : {} }
+      });
+      if (findings[findings.length - 1].cwe.length === 0) findings[findings.length - 1].cwe = ["CWE-1395"];
+    }
+  }
+  const report2 = {
+    version: 1,
+    scope: { ...sinks2.base ? { base: sinks2.base } : {}, ...sinks2.head ? { head: sinks2.head } : {}, states: ["push"], complete: true, note: "engine evidence only, not reviewed by an agent" },
+    findings
+  };
+  (0, import_node_fs7.writeFileSync)((0, import_node_path7.resolve)(cwd, out), JSON.stringify(report2, null, 2) + "\n");
+  process.stdout.write(`${high}
+`);
+  return EXIT.ok;
+}
+
+// src/commands/hook.ts
+var import_node_fs8 = require("node:fs");
+var import_node_path8 = require("node:path");
+var import_node_child_process2 = require("node:child_process");
+var HOOK_HELP = `abliterate hook install|uninstall [--force]
+  Installs a git pre-push hook that runs a fast evidence pass (sinks and deps) on what you are about to push.
+  Non-blocking by default. Environment, read at push time:
+    ABLITERATE_BLOCK=1        fail the push when a high-confidence candidate is in the pushed commits
+    ABLITERATE_DEPS=0         skip the dependency lookup (no network)
+    ABLITERATE_AGENT=claude   also run a full review with Claude Code (claude -p), or "codex" (codex exec)
+  --force replaces an existing pre-push hook, keeping it as pre-push.abliterate-backup.`;
+var MARKER = "# abliterate-pre-push-hook";
+function engineCommand() {
+  const self = process.argv[1] ? (0, import_node_path8.resolve)(process.argv[1]) : "";
+  if (self && !/[\\/]_npx[\\/]/.test(self) && (0, import_node_fs8.existsSync)(self)) return `node '${self.replace(/'/g, "'\\''")}'`;
+  return `npx -y abliterate@${VERSION}`;
+}
+function script(engine) {
+  return `#!/bin/sh
+${MARKER} (abliterate ${VERSION})
+# Fast security evidence for the commits being pushed. Remove with: abliterate hook uninstall
+abl() { ${engine} "$@"; }
+zero=0000000000000000000000000000000000000000
+status=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" = "$zero" ] || ! git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+    base=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null || echo "")
+    [ -z "$base" ] && for b in origin/main origin/master main master; do git rev-parse -q --verify "$b^{commit}" >/dev/null && base=$b && break; done
+  else
+    base=$remote_sha
+  fi
+  [ -z "$base" ] && { echo "abliterate: no base to compare $local_ref against; skipping." >&2; continue; }
+  echo "abliterate: evidence for $local_ref against $base" >&2
+  out=$(abl sinks --changed --base "$base" --format md 2>&1) || { echo "$out" >&2; continue; }
+  echo "$out" >&2
+  if [ "\${ABLITERATE_DEPS:-1}" != "0" ]; then
+    abl deps --changed --base "$base" --format md >&2 2>&1 || true
+  fi
+  if [ "\${ABLITERATE_BLOCK:-0}" = "1" ] && echo "$out" | grep -q '^| push | .* | high |'; then
+    echo "abliterate: high-confidence candidates in the pushed commits (ABLITERATE_BLOCK=1). Review them or push with --no-verify." >&2
+    status=1
+  fi
+  case "\${ABLITERATE_AGENT:-}" in
+    claude) claude -p "$(abl review --since "$base")" --allowedTools "Read,Grep,Glob,Bash(git diff:*),Bash(git show:*),Bash(git log:*),Bash(npx -y abliterate*),Bash(abliterate:*)" >&2 || true ;;
+    codex) codex exec --sandbox read-only "$(abl review --since "$base")" >&2 || true ;;
+  esac
+done
+exit $status
+`;
+}
+function hook(flags, cwd) {
+  allowFlags(flags, ["force"]);
+  const action = flags._[0];
+  if (action !== "install" && action !== "uninstall") throw new UsageError("hook needs install or uninstall");
+  const r = (0, import_node_child_process2.spawnSync)("git", ["rev-parse", "--git-path", "hooks"], { cwd, encoding: "utf8" });
+  if (r.status !== 0) throw new UsageError("not inside a git repository");
+  const hooksDir = r.stdout.trim();
+  const dir = (0, import_node_path8.isAbsolute)(hooksDir) ? hooksDir : (0, import_node_path8.join)(git(cwd, ["rev-parse", "--show-toplevel"]).trim(), hooksDir);
+  const file = (0, import_node_path8.join)(dir, "pre-push");
+  const existing = (0, import_node_fs8.existsSync)(file) ? (0, import_node_fs8.readFileSync)(file, "utf8") : void 0;
+  const ours = existing?.includes(MARKER) ?? false;
+  if (action === "uninstall") {
+    if (!existing) {
+      process.stdout.write("No pre-push hook installed.\n");
+      return EXIT.ok;
+    }
+    if (!ours) throw new UsageError(`${file} was not installed by abliterate; leaving it in place`);
+    (0, import_node_fs8.unlinkSync)(file);
+    if ((0, import_node_fs8.existsSync)(file + ".abliterate-backup")) (0, import_node_fs8.renameSync)(file + ".abliterate-backup", file);
+    process.stdout.write(`Removed ${file}.
+`);
+    return EXIT.ok;
+  }
+  if (existing && !ours) {
+    if (flags.force !== true) throw new UsageError(`${file} already exists and is not abliterate's; rerun with --force to replace it (it will be kept as pre-push.abliterate-backup)`);
+    (0, import_node_fs8.renameSync)(file, file + ".abliterate-backup");
+  }
+  (0, import_node_fs8.mkdirSync)((0, import_node_path8.dirname)(file), { recursive: true });
+  (0, import_node_fs8.writeFileSync)(file, script(engineCommand()));
+  (0, import_node_fs8.chmodSync)(file, 493);
+  process.stdout.write(`Installed ${file}. It never blocks unless ABLITERATE_BLOCK=1; see "abliterate hook --help".
+`);
+  return EXIT.ok;
+}
+
+// src/commands/report.ts
+var import_node_fs10 = require("node:fs");
+var import_node_path10 = require("node:path");
+
+// src/findings.ts
+var SEVERITIES = ["critical", "high", "medium", "low"];
+var STATUSES = ["confirmed", "needs-evidence", "pre-existing"];
+var SNAPSHOTS = ["push", "index", "worktree", "file"];
+var SOURCES = ["review", "deps", "variants"];
+var CONFIDENCES = ["high", "medium", "low"];
+var severityRank = (s) => SEVERITIES.length - SEVERITIES.indexOf(s);
+var isObj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
+var str2 = (e, at, v, required = true) => {
+  if (v === void 0 && !required) return;
+  if (typeof v !== "string" || v.trim() === "") e.push(`${at}: expected a non-empty string`);
+};
+var oneOf = (e, at, v, allowed) => {
+  if (typeof v !== "string" || !allowed.includes(v)) e.push(`${at}: expected one of ${allowed.join(", ")}; got ${JSON.stringify(v)}`);
+};
+var line = (e, at, v, required = true) => {
+  if (v === void 0 && !required) return;
+  if (!Number.isInteger(v) || v < 1) e.push(`${at}: expected a 1-based line number`);
+};
+var relPath = (e, at, v) => {
+  str2(e, at, v);
+  if (typeof v === "string" && (v.startsWith("/") || v.split(/[\\/]/).includes(".."))) {
+    e.push(`${at}: use a path relative to the repository root, without "..": ${v}`);
+  }
+};
+function location(e, at, v) {
+  if (!isObj(v)) return void e.push(`${at}: expected an object with path and startLine`);
+  relPath(e, `${at}.path`, v.path);
+  line(e, `${at}.startLine`, v.startLine);
+  line(e, `${at}.endLine`, v.endLine, false);
+  if (Number.isInteger(v.endLine) && Number.isInteger(v.startLine) && v.endLine < v.startLine) {
+    e.push(`${at}.endLine: must be >= startLine`);
+  }
+}
+function finding(e, at, v) {
+  if (!isObj(v)) return void e.push(`${at}: expected an object`);
+  str2(e, `${at}.id`, v.id);
+  str2(e, `${at}.title`, v.title);
+  oneOf(e, `${at}.status`, v.status, STATUSES);
+  oneOf(e, `${at}.severity`, v.severity, SEVERITIES);
+  oneOf(e, `${at}.confidence`, v.confidence, CONFIDENCES);
+  oneOf(e, `${at}.snapshot`, v.snapshot, SNAPSHOTS);
+  oneOf(e, `${at}.source`, v.source, SOURCES);
+  if (!Array.isArray(v.cwe) || v.cwe.length === 0) e.push(`${at}.cwe: expected at least one id such as "CWE-89"`);
+  else v.cwe.forEach((c, i) => {
+    if (typeof c !== "string" || !/^CWE-\d{1,5}$/.test(c)) e.push(`${at}.cwe[${i}]: expected "CWE-<number>"; got ${JSON.stringify(c)}`);
+  });
+  location(e, `${at}.location`, v.location);
+  for (const k of ["rule", "actor", "impact", "evidence"]) str2(e, `${at}.${k}`, v[k]);
+  for (const k of ["fix", "test", "decisiveEvidence"]) str2(e, `${at}.${k}`, v[k], false);
+  if (v.status === "needs-evidence") str2(e, `${at}.decisiveEvidence`, v.decisiveEvidence);
+  if (v.status === "confirmed") {
+    str2(e, `${at}.fix`, v.fix);
+    str2(e, `${at}.test`, v.test);
+  }
+  if (v.trace !== void 0) {
+    if (!Array.isArray(v.trace)) e.push(`${at}.trace: expected an array`);
+    else v.trace.forEach((t, i) => {
+      location(e, `${at}.trace[${i}]`, t);
+      if (isObj(t)) str2(e, `${at}.trace[${i}].note`, t.note);
+    });
+  }
+  if (v.source === "deps") {
+    const a = v.advisory;
+    if (!isObj(a)) e.push(`${at}.advisory: required when source is "deps"`);
+    else {
+      for (const k of ["id", "ecosystem", "package", "version"]) str2(e, `${at}.advisory.${k}`, a[k]);
+      str2(e, `${at}.advisory.fixed`, a.fixed, false);
+      if (a.epss !== void 0 && (typeof a.epss !== "number" || a.epss < 0 || a.epss > 1)) e.push(`${at}.advisory.epss: expected a probability between 0 and 1`);
+      if (a.kev !== void 0 && typeof a.kev !== "boolean") e.push(`${at}.advisory.kev: expected a boolean`);
+    }
+  }
+}
+function validateReport(v) {
+  const e = [];
+  if (!isObj(v)) return ["root: expected an object with version, scope and findings"];
+  if (v.version !== 1) e.push(`version: expected 1; got ${JSON.stringify(v.version)}`);
+  if (!isObj(v.scope)) e.push("scope: expected an object");
+  else {
+    if (!Array.isArray(v.scope.states)) e.push("scope.states: expected an array of snapshots");
+    else v.scope.states.forEach((s, i) => oneOf(e, `scope.states[${i}]`, s, SNAPSHOTS));
+    if (typeof v.scope.complete !== "boolean") e.push("scope.complete: expected true or false (false = review incomplete)");
+    str2(e, "scope.base", v.scope.base, false);
+    str2(e, "scope.head", v.scope.head, false);
+  }
+  if (!Array.isArray(v.findings)) e.push("findings: expected an array (use [] when nothing is confirmed)");
+  else {
+    const ids = /* @__PURE__ */ new Set();
+    v.findings.forEach((f, i) => {
+      finding(e, `findings[${i}]`, f);
+      if (isObj(f) && typeof f.id === "string") {
+        if (ids.has(f.id)) e.push(`findings[${i}].id: duplicate id ${f.id}`);
+        ids.add(f.id);
+      }
+    });
+  }
+  return e;
+}
+
+// src/report/markdown.ts
+var bySeverity = (a, b) => severityRank(b.severity) - severityRank(a.severity) || a.id.localeCompare(b.id);
+var loc = (f) => `\`${f.location.path}:${f.location.startLine}\``;
+function block(f) {
+  const lines = [
+    `### ${f.severity.toUpperCase()} \xB7 ${f.cwe.join(", ")} \xB7 ${f.title}`,
+    "",
+    `${loc(f)} \xB7 ${f.snapshot} \xB7 confidence ${f.confidence}${f.advisory ? ` \xB7 ${f.advisory.package}@${f.advisory.version} (${f.advisory.id}${f.advisory.kev ? ", in CISA KEV" : ""})` : ""}`,
+    "",
+    `- **Rule broken:** ${f.rule}`,
+    `- **Who:** ${f.actor}`,
+    `- **Effect:** ${f.impact}`,
+    `- **Evidence:** ${f.evidence}`
+  ];
+  if (f.fix) lines.push(`- **Fix:** ${f.fix}`);
+  if (f.test) lines.push(`- **Test:** ${f.test}`);
+  if (f.decisiveEvidence) lines.push(`- **Would decide it:** ${f.decisiveEvidence}`);
+  return lines.join("\n");
+}
+function toMarkdown(report2, opts) {
+  const confirmed = report2.findings.filter((f) => f.status === "confirmed").sort(bySeverity);
+  const open = report2.findings.filter((f) => f.status === "needs-evidence").sort(bySeverity);
+  const old = report2.findings.filter((f) => f.status === "pre-existing").sort(bySeverity);
+  const decision = opts.blocking.length ? `**Block:** ${opts.blocking.length} confirmed ${opts.blocking.length === 1 ? "vulnerability" : "vulnerabilities"} at or above \`${opts.failOn}\` introduced by this change.` : confirmed.length ? `**Review:** ${confirmed.length} confirmed ${confirmed.length === 1 ? "issue" : "issues"} below the blocking threshold.` : "**No confirmed vulnerabilities introduced by this change.**";
+  const out = [
+    "<!-- abliterate-report -->",
+    "## abliterate review",
+    "",
+    decision,
+    "",
+    `Scope: ${report2.scope.base ? `\`${report2.scope.base}\`\u2026` : ""}${report2.scope.head ? `\`${report2.scope.head.slice(0, 12)}\`` : "working copy"} \xB7 states: ${report2.scope.states.join(", ") || "none"}${report2.scope.complete ? "" : " \xB7 **review incomplete**"}${report2.scope.note ? ` \xB7 ${report2.scope.note}` : ""}`
+  ];
+  if (confirmed.length) out.push("", "## Confirmed", "", confirmed.map(block).join("\n\n"));
+  if (open.length) out.push("", "## Needs evidence (not counted)", "", open.map(block).join("\n\n"));
+  if (old.length) out.push("", "## Pre-existing (not introduced here)", "", ...old.map((f) => `- ${f.severity} \xB7 ${f.cwe.join(", ")} \xB7 ${f.title} \xB7 ${loc(f)}`));
+  out.push("", "<sub>Findings are confirmed by tracing the code path; candidates the engine raised and the review disproved are not listed.</sub>");
+  return out.join("\n") + "\n";
+}
+
+// src/report/sarif.ts
+var import_node_crypto2 = require("node:crypto");
+var import_node_fs9 = require("node:fs");
+var import_node_path9 = require("node:path");
+var SECURITY_SEVERITY = { critical: "9.5", high: "7.5", medium: "5.0", low: "2.0" };
+var LEVEL = { critical: "error", high: "error", medium: "warning", low: "note" };
+var INFORMATION_URI = "https://github.com/andreaborio/abliterate";
+function lineText(root, path, line2) {
+  try {
+    const text = (0, import_node_fs9.readFileSync)((0, import_node_path9.join)(root, path), "utf8").split(/\r?\n/)[line2 - 1] ?? "";
+    return text.replace(/\s+/g, " ").trim();
+  } catch {
+    return "";
+  }
+}
+function fingerprint(root, f) {
+  const anchor = lineText(root, f.location.path, f.location.startLine) || f.title.toLowerCase();
+  return (0, import_node_crypto2.createHash)("sha256").update([f.cwe.slice().sort().join(","), f.location.path, anchor].join("\n")).digest("hex");
+}
+var ruleId = (f) => f.source === "deps" && f.advisory ? f.advisory.id : f.cwe[0];
+function toSarif(report2, opts) {
+  const findings = report2.findings.filter((f) => opts.includeUnconfirmed || f.status !== "needs-evidence");
+  const rules = /* @__PURE__ */ new Map();
+  for (const f of findings) {
+    const id = ruleId(f);
+    const existing = rules.get(id);
+    const sev = existing && Number(existing.properties["security-severity"]) >= Number(SECURITY_SEVERITY[f.severity]) ? existing.properties["security-severity"] : SECURITY_SEVERITY[f.severity];
+    const cweNumber = f.cwe[0].slice(4);
+    rules.set(id, {
+      id,
+      name: f.source === "deps" ? `VulnerableDependency/${id}` : id,
+      shortDescription: { text: f.source === "deps" && f.advisory ? `Known vulnerability in ${f.advisory.package}` : `${f.cwe[0]}` },
+      helpUri: f.source === "deps" ? `https://osv.dev/vulnerability/${encodeURIComponent(id)}` : `https://cwe.mitre.org/data/definitions/${cweNumber}.html`,
+      properties: {
+        "security-severity": sev,
+        tags: ["security", ...f.cwe.map((c) => `external/cwe/${c.toLowerCase()}`)]
+      }
+    });
+  }
+  const results = findings.map((f) => {
+    const message = [`${f.title}.`, f.impact, f.fix ? `Fix: ${f.fix}` : "", f.decisiveEvidence ? `Needs: ${f.decisiveEvidence}` : ""].filter(Boolean).join(" ");
+    return {
+      ruleId: ruleId(f),
+      level: f.status === "needs-evidence" ? "note" : LEVEL[f.severity],
+      message: { text: message },
+      locations: [{
+        physicalLocation: {
+          artifactLocation: { uri: f.location.path, uriBaseId: "%SRCROOT%" },
+          region: { startLine: f.location.startLine, ...f.location.endLine ? { endLine: f.location.endLine } : {} }
+        }
+      }],
+      ...f.trace?.length ? {
+        codeFlows: [{
+          threadFlows: [{
+            locations: f.trace.map((t) => ({
+              location: {
+                physicalLocation: { artifactLocation: { uri: t.path, uriBaseId: "%SRCROOT%" }, region: { startLine: t.startLine } },
+                message: { text: t.note }
+              }
+            }))
+          }]
+        }]
+      } : {},
+      partialFingerprints: { "abliterate/v1": fingerprint(opts.root, f) },
+      ...f.status === "pre-existing" ? { baselineState: "unchanged" } : {},
+      properties: {
+        abliteratId: f.id,
+        status: f.status,
+        snapshot: f.snapshot,
+        confidence: f.confidence,
+        ...f.advisory ? { advisory: f.advisory } : {}
+      }
+    };
+  });
+  return {
+    $schema: "https://json.schemastore.org/sarif-2.1.0.json",
+    version: "2.1.0",
+    runs: [{
+      tool: { driver: { name: "abliterate", semanticVersion: opts.version, informationUri: INFORMATION_URI, rules: [...rules.values()] } },
+      results
+    }]
+  };
+}
+
+// src/commands/report.ts
+var REPORT_HELP = `abliterate report --in findings.json [--sarif out.sarif] [--md out.md] [--fail-on critical|high|medium|low|none]
+  Validates findings.json and writes SARIF 2.1.0 and/or markdown. Prints errors to fix when invalid.
+  Exit 1 when a confirmed finding introduced by the change is at or above --fail-on (default: none).`;
+function report(flags, cwd) {
+  allowFlags(flags, ["in", "sarif", "md", "fail-on", "root", "include-unconfirmed"]);
+  const input = str(flags, "in");
+  if (!input) throw new UsageError("report needs --in findings.json");
+  const failOn = str(flags, "fail-on") ?? "none";
+  if (failOn !== "none" && !SEVERITIES.includes(failOn)) throw new UsageError(`--fail-on must be one of ${SEVERITIES.join(", ")}, none`);
+  let data;
+  try {
+    data = JSON.parse((0, import_node_fs10.readFileSync)((0, import_node_path10.resolve)(cwd, input), "utf8"));
+  } catch (err) {
+    process.stderr.write(`Cannot read ${input} as JSON: ${err.message}
+`);
+    return EXIT.usage;
+  }
+  const errors = validateReport(data);
+  if (errors.length) {
+    process.stderr.write(`${input} is not a valid abliterate report (${errors.length} problem${errors.length > 1 ? "s" : ""}):
+`);
+    for (const e of errors) process.stderr.write(`  - ${e}
+`);
+    process.stderr.write("Fix these fields and run report again. Schema: skills/abliterate-review/reference/report-format.md\n");
+    return EXIT.usage;
+  }
+  const rep = data;
+  const root = (0, import_node_path10.resolve)(cwd, str(flags, "root") ?? ".");
+  const blocking = failOn === "none" ? [] : rep.findings.filter(
+    (f) => f.status === "confirmed" && severityRank(f.severity) >= severityRank(failOn)
+  );
+  const sarifPath = str(flags, "sarif");
+  if (sarifPath) {
+    const sarif = toSarif(rep, { root, version: VERSION, includeUnconfirmed: flags["include-unconfirmed"] === true });
+    (0, import_node_fs10.writeFileSync)((0, import_node_path10.resolve)(cwd, sarifPath), JSON.stringify(sarif, null, 2) + "\n");
+  }
+  const md = toMarkdown(rep, { failOn, blocking });
+  const mdPath = str(flags, "md");
+  if (mdPath) (0, import_node_fs10.writeFileSync)((0, import_node_path10.resolve)(cwd, mdPath), md);
+  if (!sarifPath && !mdPath) process.stdout.write(md);
+  return blocking.length ? EXIT.findings : EXIT.ok;
+}
+
+// src/commands/variants.ts
+var import_node_fs11 = require("node:fs");
+var import_node_path11 = require("node:path");
+
+// src/variants.ts
+function parsePatch(text) {
+  const files = [];
+  let cur;
+  for (const line2 of text.split("\n")) {
+    if (line2.startsWith("diff --git ")) {
+      cur = { path: "", removed: [], added: [] };
+      files.push(cur);
+      continue;
+    }
+    if (!cur) continue;
+    if (line2.startsWith("+++ ")) {
+      cur.path = line2.slice(4).replace(/^b\//, "");
+      continue;
+    }
+    if (line2.startsWith("--- ")) {
+      if (!cur.path) cur.path = line2.slice(4).replace(/^a\//, "");
+      continue;
+    }
+    if (line2.startsWith("-") && !line2.startsWith("---")) cur.removed.push(line2.slice(1));
+    else if (line2.startsWith("+") && !line2.startsWith("+++")) cur.added.push(line2.slice(1));
+  }
+  return files.filter((f) => f.path && f.path !== "/dev/null" && f.removed.length);
+}
+var calls = (s) => new Set([...s.matchAll(/([A-Za-z_$][\w$]*)\s*\(/g)].map((m) => m[1]).filter((n) => !/^(if|for|while|switch|return|function|catch|typeof|await|new|require|import|include|include_once|require_once|use|def|print|len|str)$/.test(n)));
+function lineHits(path, line2) {
+  const lang = langOf(path);
+  const code = stripComments(line2, lang);
+  const ctx = { path, lang, raw: [line2], code: [code] };
+  return RULES.filter((r) => r.files ? r.files.test(path) : r.langs === "any" || r.langs.includes(lang)).filter((r) => {
+    try {
+      return r.match(ctx).some((h) => !h.guarded);
+    } catch {
+      return false;
+    }
+  });
+}
+function seedsFromPatch(origin, title, patch) {
+  const seeds = [];
+  for (const f of parsePatch(patch)) {
+    const addedCalls = calls(f.added.join("\n"));
+    const removedCalls = calls(f.removed.join("\n"));
+    const guards = [...addedCalls].filter((c) => !removedCalls.has(c));
+    const stillVulnerable = new Set(f.added.flatMap((l) => lineHits(f.path, l).map((r) => r.id)));
+    const seen = /* @__PURE__ */ new Set();
+    for (const line2 of f.removed) {
+      const hits = lineHits(f.path, line2).filter((r) => !stillVulnerable.has(r.id));
+      for (const r of hits) {
+        if (seen.has(r.id)) continue;
+        seen.add(r.id);
+        seeds.push({ origin, title, file: f.path, rule: r.id, cwe: r.cwe, guards, anchors: [...calls(line2)], removed: line2.trim().slice(0, 200) });
+      }
+      if (!hits.length && guards.length && calls(line2).size && seeds.every((s) => s.file !== f.path || s.rule)) {
+        const anchors = [...calls(line2)].filter((c) => !guards.includes(c));
+        if (anchors.length) seeds.push({ origin, title, file: f.path, guards, anchors, removed: line2.trim().slice(0, 200) });
+      }
+    }
+  }
+  return seeds.filter((s, i) => s.rule || !seeds.some((o, j) => j !== i && o.file === s.file && o.rule));
+}
+var SECURITY_COMMIT = /\b(security|vuln\w*|cve-\d{4}-\d+|ghsa-[\w-]+|xss|csrf|ssrf|sqli|sql injection|injection|traversal|rce|remote code|sanitiz\w*|escap\w*|auth(?:z|orization)? bypass|idor|privilege|open redirect|deserializ\w*|xxe|secret leak|leak)\b/i;
+
+// src/commands/variants.ts
+var VARIANTS_HELP = `abliterate variants (--from SHA|URL|ADVISORY-ID | --history) [--base REF] [--max-commits N]
+  Learns from a known fix (a local commit, a GitHub commit URL, or an OSV/GHSA/CVE id whose fix commit is
+  public) which rule the vulnerable code broke and which guard the fix added, then finds the same pattern
+  without that guard in this repository. --history uses this repository's own past security fixes.
+  Advisory lookups send only the advisory id; no source leaves the machine.`;
+var DEFAULT_MAX_COMMITS = 500;
+var GITHUB_COMMIT = /^https:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/commit\/([0-9a-f]{7,40})/;
+async function seedsFrom(from, root, offline, notes) {
+  if (/^[0-9a-f]{7,40}$/i.test(from)) {
+    const patch = git(root, ["show", "--no-ext-diff", "--no-textconv", "--unified=0", "--format=%s", from], { allowFail: true });
+    if (!patch) throw new UsageError(`commit ${from} not found in this clone`);
+    return seedsFromPatch(from, patch.split("\n")[0], patch);
+  }
+  const http = makeHttp(offline);
+  const patchFrom = async (url, title) => {
+    const m = GITHUB_COMMIT.exec(url);
+    if (!m) return [];
+    const patch = await http.get(ENDPOINTS.githubPatch(m[1], m[2], m[3]), { text: true, maxAgeMs: 30 * 24 * 36e5 });
+    if (!patch) {
+      notes.push(`Could not fetch ${url}${offline ? " (offline)" : ""}`);
+      return [];
+    }
+    return seedsFromPatch(url, title, patch);
+  };
+  if (GITHUB_COMMIT.test(from)) return patchFrom(from, from);
+  if (/^(GHSA-|CVE-|PYSEC-|GO-|RUSTSEC-|OSV-)/i.test(from)) {
+    const v = await http.get(ENDPOINTS.osvVuln(from));
+    if (!v) {
+      notes.push(`Advisory ${from} not found${offline ? " in the cache (offline)" : ""}`);
+      return [];
+    }
+    const fixes = (v.references ?? []).map((r) => r.url).filter((u) => GITHUB_COMMIT.test(u));
+    const seeds = (await Promise.all(fixes.slice(0, 5).map((u) => patchFrom(u, `${v.id}: ${v.summary ?? ""}`)))).flat();
+    for (const cwe of v.database_specific?.cwe_ids ?? []) {
+      for (const r of RULES.filter((x) => x.cwe === cwe)) {
+        if (!seeds.some((s) => s.rule === r.id)) seeds.push({ origin: v.id, title: `${v.id}: ${v.summary ?? ""} (class ${cwe})`, file: "", rule: r.id, cwe, guards: [], anchors: [], removed: "" });
+      }
+    }
+    if (!fixes.length) notes.push(`${v.id} lists no public fix commit; searched by its CWE class only.`);
+    return seeds;
+  }
+  throw new UsageError("--from takes a commit sha, a GitHub commit URL, or an advisory id (GHSA-, CVE-, PYSEC-, GO-, RUSTSEC-)");
+}
+function shapeMatches(root, files, seed) {
+  const out = [];
+  const needAll = seed.anchors.map((a) => new RegExp(`\\b${a.replace(/\$/g, "\\$")}\\s*\\(`));
+  const guardRe = seed.guards.length ? new RegExp(`\\b(${seed.guards.map((g) => g.replace(/\$/g, "\\$")).join("|")})\\s*\\(`) : void 0;
+  for (const path of files) {
+    if (skipPath(path) || langOf(path) !== langOf(seed.file)) continue;
+    let text;
+    try {
+      const p = (0, import_node_path11.join)(root, path);
+      if ((0, import_node_fs11.statSync)(p).size > MAX_BYTES) continue;
+      text = (0, import_node_fs11.readFileSync)(p, "utf8");
+    } catch {
+      continue;
+    }
+    const code = stripComments(text, langOf(path)).split(/\r?\n/);
+    code.forEach((l, i) => {
+      if (needAll.every((re) => re.test(l)) && !(guardRe && guardRe.test(l))) {
+        out.push({ rule: `shape:${seed.anchors.join("+")}`, cwe: seed.cwe ?? "CWE-20", title: `Same call shape as the code fixed in ${seed.origin.slice(0, 12)}`, confidence: "low", path, line: i + 1, changedIn: null, snippet: text.split(/\r?\n/)[i].trim().slice(0, 200) });
+      }
+    });
+  }
+  return out;
+}
+async function variants(flags, cwd) {
+  allowFlags(flags, ["from", "history", "base", "max-commits", "offline"]);
+  const from = str(flags, "from");
+  if (!from && flags.history !== true) throw new UsageError("variants needs --from or --history");
+  const sc = computeScope(cwd, str(flags, "base"));
+  const notes = [...sc.notes];
+  const seeds = [];
+  if (from) seeds.push(...await seedsFrom(from, sc.root, flags.offline === true, notes));
+  if (flags.history === true) {
+    const max = Number(str(flags, "max-commits") ?? DEFAULT_MAX_COMMITS);
+    if (!Number.isInteger(max) || max < 1) throw new UsageError("--max-commits must be a positive integer");
+    const log = git(sc.root, ["log", "--no-merges", `--max-count=${max}`, "--format=%H%x09%s", "HEAD"], { allowFail: true });
+    const fixes = log.split("\n").filter(Boolean).map((l) => l.split("	")).filter(([, s]) => SECURITY_COMMIT.test(s ?? ""));
+    for (const [sha, subject] of fixes) {
+      const patch = git(sc.root, ["show", "--no-ext-diff", "--no-textconv", "--unified=0", "--format=%s", sha], { allowFail: true });
+      seeds.push(...seedsFromPatch(sha, subject, patch));
+    }
+    notes.push(`${fixes.length} security-fix commit(s) found in the last ${max} commits.`);
+  }
+  const variantsOut = [];
+  const byRule = /* @__PURE__ */ new Map();
+  for (const s of seeds) if (s.rule) byRule.set(s.rule, [...byRule.get(s.rule) ?? [], s]);
+  if (byRule.size) {
+    const rules = RULES.filter((r) => byRule.has(r.id));
+    const res = scan(cwd, { base: sc.base, rules });
+    for (const c of res.candidates) {
+      const relevant = byRule.get(c.rule);
+      const guarded = relevant.some((s) => s.guards.length && new RegExp(`\\b(${s.guards.join("|")})\\s*\\(`).test(c.snippet));
+      if (!guarded) variantsOut.push({ ...c, seed: relevant.map((s) => `${s.origin.slice(0, 12)} ${s.title}`).join(" | ") });
+    }
+  }
+  const files = [.../* @__PURE__ */ new Set([...trackedFiles(sc.root), ...sc.untracked])];
+  for (const s of seeds.filter((x) => !x.rule)) for (const c of shapeMatches(sc.root, files, s)) variantsOut.push({ ...c, seed: `${s.origin.slice(0, 12)} ${s.title}` });
+  print({
+    seeds: seeds.map(({ origin, title, file, rule, cwe, guards, removed }) => ({ origin, title, file, rule: rule ?? null, cwe: cwe ?? null, guards, removed })),
+    variants: variantsOut,
+    notes,
+    guidance: "Each variant repeats a pattern a past fix removed. Confirm it reaches attacker-controlled data, check whether the same guard is applied elsewhere on its path, and report it as introduced or pre-existing by changedIn."
+  });
+  return EXIT.ok;
+}
+
+// src/cli.ts
+var commands = {
+  scope: { help: SCOPE_HELP, run: scope },
+  surface: { help: SURFACE_HELP, booleans: ["changed"], run: surface },
+  sinks: { help: SINKS_HELP, booleans: ["changed", "include-guarded"], run: sinks },
+  deps: { help: DEPS_HELP, booleans: ["offline", "changed", "inventory"], run: deps },
+  variants: { help: VARIANTS_HELP, booleans: ["history", "offline"], run: variants },
+  report: { help: REPORT_HELP, booleans: ["include-unconfirmed"], run: report },
+  draft: { help: DRAFT_HELP, run: draft },
+  hook: { help: HOOK_HELP, booleans: ["force"], run: hook },
+  review: { help: REVIEW_HELP, run: review },
+  prompt: { help: PROMPT_HELP, run: prompt },
+  skill: { help: SKILL_HELP, run: skill }
+};
+var HELP = `abliterate ${VERSION}: evidence for a security review of source code.
+
+Commands:
+${Object.values(commands).map((c) => "  " + c.help.split("\n")[0]).join("\n")}
+
+Read-only on your repository. Only "deps" uses the network, and it sends package names
+and versions, never source. Run "abliterate <command> --help" for details.`;
+async function main(argv) {
+  const [name, ...rest] = argv;
+  if (!name || name === "-h" || name === "--help") {
+    process.stdout.write(HELP + "\n");
+    return EXIT.ok;
+  }
+  if (name === "--version") {
+    process.stdout.write(VERSION + "\n");
+    return EXIT.ok;
+  }
+  const cmd = commands[name];
+  if (!cmd) throw new UsageError(`unknown command "${name}"`);
+  if (rest[0] === "--help" || rest[0] === "-h") {
+    process.stdout.write(cmd.help + "\n");
+    return EXIT.ok;
+  }
+  return cmd.run(parseArgs(rest, cmd.booleans), process.cwd());
+}
+main(process.argv.slice(2)).then(
+  (code) => {
+    process.exitCode = code;
+  },
+  (err) => {
+    if (err instanceof UsageError) {
+      process.stderr.write(`abliterate: ${err.message}
+Run "abliterate --help".
+`);
+      process.exitCode = EXIT.usage;
+    } else {
+      process.stderr.write(`abliterate: ${err.message}
+`);
+      process.exitCode = EXIT.env;
+    }
+  }
+);

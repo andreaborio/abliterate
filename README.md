@@ -36,7 +36,7 @@ codex plugin marketplace add andreaborio/abliterate
 npx skills add andreaborio/abliterate --skill abliterate-review --skill abliterate-variants
 ```
 
-**The engine** needs no install: `npx -y abliterate@0.2.0 --help`.
+**The engine** needs no install: `npx -y abliterate@latest --help`.
 
 ## Try a review
 
@@ -61,7 +61,7 @@ Other requests:
 ## The engine
 
 ```sh
-npx -y abliterate@0.2.0 <command>
+npx -y abliterate@latest <command>
 ```
 
 | Command | Output |

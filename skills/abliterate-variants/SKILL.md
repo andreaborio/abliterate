@@ -28,7 +28,7 @@ Variant hunt:
 | A public fix on GitHub | `abliterate variants --from https://github.com/<owner>/<repo>/commit/<sha>` |
 | Nothing specific | `abliterate variants --history` (security fixes in the last 500 commits) |
 
-Run `abliterate …` if it is on PATH, otherwise `npx -y abliterate@0.2.0 …`. Add `--base REF` so variants are marked as introduced by the current change or pre-existing. `--from <id>` and GitHub URLs fetch the public advisory or patch: only the id or URL is sent.
+Run `abliterate …` if it is on PATH (the Claude Code plugin puts it there), otherwise `npx -y abliterate@latest …`; running the engine is part of the hunt and allowed. Add `--base REF` so variants are marked as introduced by the current change or pre-existing. `--from <id>` and GitHub URLs fetch the public advisory or patch: only the id or URL is sent.
 
 **2. Read the seeds.** Each seed has a `rule` (or a weaker call-shape match), the `guards` the fix introduced and the `removed` line. If no seed was derived (for example the fix lives inside a library), the engine falls back to the advisory's CWE class. Say so, and treat those results as a class sweep, not as variants.
 
