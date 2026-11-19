@@ -30,7 +30,7 @@ In a Supabase app the database is the trust boundary. The application server is 
 | Service-role side effect **after** an RLS-bound query proved the caller can see the resource | Upload, external API call, email or LLM call before any RLS-bound query (the caller's identity was only read from a decoded cookie) |
 | `.eq('email', email.toLowerCase())` against a column stored lower-cased | `.ilike('email', email)`: `_` and `%` in the caller's own value are wildcards |
 | Row written by the server with server-chosen values | Row inserted under RLS by the user, later consumed by a service-role job (path to delete or sign, id to sync, role to propagate): confused deputy |
-| `SECURITY INVOKER` function, or `DEFINER` that checks `auth.uid()`/role inside and has `SET search_path` | `SECURITY DEFINER` function executable by `PUBLIC` (the default: `REVOKE ... FROM anon` alone does not remove it), or taking `p_tenant_id` from the caller |
+| `SECURITY INVOKER` function, or `DEFINER` that checks `auth.uid()`/role inside and has `SET search_path` | `SECURITY DEFINER` function executable by `PUBLIC` (the default: `REVOKE ... FROM anon` alone does not remove it), or taking `p_tenant_id` from the caller. The reverse holds too: Supabase's default privileges grant `EXECUTE` on new functions explicitly to `anon` and `authenticated`, so `REVOKE ... FROM PUBLIC` alone leaves them callable; check `has_function_privilege` for each role |
 | View created `WITH (security_invoker = on)` | Plain view: runs with the owner's rights and bypasses the base table's RLS |
 See `classes/access-control.md`, `classes/sql-nosql.md`.
 
