@@ -2,11 +2,12 @@
 
 | Path | What it is |
 | --- | --- |
-| `make_fixtures.py` | 14 synthetic git repos. Each has a `main` base and a `feature` branch that introduces one vulnerability; most also carry a guarded twin that must not be reported. Writes `expected.json` with the exact lines. |
+| `make_fixtures.py` | 15 synthetic git repos. Each has a `main` base and a `feature` branch that introduces one vulnerability; most also carry a guarded twin that must not be reported. Writes `expected.json` with the exact lines. |
 | `../engine/test/` | Deterministic engine tests on those fixtures: recall on seeded vulnerabilities, zero hits on guarded twins, SARIF schema, replayed OSV/KEV/EPSS. |
 | `cases/` | Agent evals in `claude plugin eval` format. Each case scaffolds one fixture, sends a user-style request and grades the reply or requested report. |
 | [local-directory-card](cases/local-directory-card/prompt.md) | Offline source review of a member card before push. The case grades the reply, checks tool calls and includes a ticket URL as context. |
 | [restricted-bash](cases/restricted-bash/prompt.md) | Review with only read-only git commands allowed: the engine is denied, and the review must still read the diff and catch the IDOR instead of stopping. |
+| [supabase-rows-not-columns](cases/supabase-rows-not-columns/prompt.md) | Supabase migration that lets employees edit their own drafts. The `expense_claims` UPDATE policy checks the row but not the columns, so a direct PostgREST PATCH self-approves the claim; the `mileage_logs` twin has the same policy and is guarded by column-level grants. The engine does not read SQL, so this one rests on the skill's Supabase guide. |
 | `grade_findings.py` | Deterministic grader for any agent's `findings.json` against `expected.json`. |
 
 ## Run the agent evals

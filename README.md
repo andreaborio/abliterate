@@ -148,7 +148,7 @@ jobs:
 
 ## How it is verified
 
-- **`engine/` tests** (`npm test`) run every rule against 14 synthetic repositories (`evals/make_fixtures.py`). Each repository seeds one vulnerability next to a guarded twin that must not be flagged. The tests also check that:
+- **`engine/` tests** (`npm test`) run every rule against 15 synthetic repositories (`evals/make_fixtures.py`). Each repository seeds one vulnerability next to a guarded twin that must not be flagged. The tests also check that:
   - SARIF validates against the official OASIS schema;
   - OSV, KEV and EPSS lookups replay recorded responses.
 - **Release check** (`python3 build.py && python3 verification/check_release.py`): installs the built npm and PyPI packages and checks that they behave identically.
