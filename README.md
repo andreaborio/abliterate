@@ -96,6 +96,18 @@ For an existing ref, the comparison starts at the remote tip advertised by Git, 
 
 By default the hook reports and allows the push. Set `ABLITERATE_BLOCK=1` to stop on a high-confidence candidate or an unavailable commit comparison. Set `ABLITERATE_DEPS=0` to skip advisory lookups.
 
+### PHP and Ruby path candidates
+
+The `php.path.request-path` and `rb.path.request-path` engine rules trace request
+values into PHP file reads/includes and Ruby file reads/`send_file`. They follow
+local assignments and interpolation, recognise `basename` on the actual path,
+and report separator-bounded confinement checks as guarded only when they precede
+the sink and apply to that resolved path. Use `sinks --include-guarded` to inspect
+the guard evidence. These bounded, same-function heuristics are review leads;
+dynamic dispatch, helper functions, aliases across calls, filesystem symlinks and
+more complex control flow still require tracing. A plain `realpath` or
+`Rails.root.join` without confinement does not suppress a candidate.
+
 ## GitHub Action
 
 ```yaml
