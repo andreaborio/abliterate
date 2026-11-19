@@ -1,0 +1,2126 @@
+{
+ "scores": {
+  "plain": {
+   "caught_confirmed": 11,
+   "caught_any": 12,
+   "pos": 12,
+   "neg_false_alarm": 1,
+   "neg": 12,
+   "neg_false_alarm_medium_plus": 0,
+   "neg_confirmed_mean": 0.08333333333333333,
+   "pair_ok": 10,
+   "pairs": 12,
+   "cost_total": 2.2746560000000002,
+   "cost_mean": 0.09477733333333334,
+   "seconds_median": 19.5135,
+   "skill_invoked": 0,
+   "engine_used": 0,
+   "parse_errors": 0,
+   "failed": 0,
+   "runs": 24
+  },
+  "security-review": {
+   "caught_confirmed": 11,
+   "caught_any": 12,
+   "pos": 12,
+   "neg_false_alarm": 1,
+   "neg": 12,
+   "neg_false_alarm_medium_plus": 1,
+   "neg_confirmed_mean": 0.08333333333333333,
+   "pair_ok": 10,
+   "pairs": 12,
+   "cost_total": 2.79997,
+   "cost_mean": 0.11666541666666666,
+   "seconds_median": 18.2145,
+   "skill_invoked": 0,
+   "engine_used": 0,
+   "parse_errors": 0,
+   "failed": 0,
+   "runs": 24
+  },
+  "skill": {
+   "caught_confirmed": 3,
+   "caught_any": 3,
+   "pos": 12,
+   "neg_false_alarm": 1,
+   "neg": 12,
+   "neg_false_alarm_medium_plus": 1,
+   "neg_confirmed_mean": 0.08333333333333333,
+   "pair_ok": 2,
+   "pairs": 12,
+   "cost_total": 1.9574851,
+   "cost_mean": 0.08156187916666667,
+   "seconds_median": 12.724,
+   "skill_invoked": 21,
+   "engine_used": 11,
+   "parse_errors": 0,
+   "failed": 0,
+   "runs": 24
+  },
+  "skill-engine": {
+   "caught_confirmed": 11,
+   "caught_any": 11,
+   "pos": 12,
+   "neg_false_alarm": 1,
+   "neg": 12,
+   "neg_false_alarm_medium_plus": 1,
+   "neg_confirmed_mean": 0.08333333333333333,
+   "pair_ok": 10,
+   "pairs": 12,
+   "cost_total": 2.6774636,
+   "cost_mean": 0.11156098333333334,
+   "seconds_median": 23.091,
+   "skill_invoked": 16,
+   "engine_used": 14,
+   "parse_errors": 0,
+   "failed": 0,
+   "runs": 24
+  }
+ },
+ "runs": {
+  "ghsa-2658-85cv-9wwq.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.11895380000000001,
+   "seconds": 24.352,
+   "turns": 8,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2658-85cv-9wwq.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1017228,
+   "seconds": 13.198,
+   "turns": 2,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2658-85cv-9wwq.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.14568160000000002,
+   "seconds": 24.327,
+   "turns": 10,
+   "skill": true,
+   "engine": [
+    "scope",
+    "sinks"
+   ]
+  },
+  "ghsa-2658-85cv-9wwq.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.058492499999999996,
+   "seconds": 10.907,
+   "turns": 5,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-2658-85cv-9wwq.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "mercury/md.py",
+     "line": 60,
+     "cwe": "CWE-79",
+     "title": "MarkdownWidget renders unsanitized Markdown/raw HTML (sanitization reverted)",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mercury/chat/message.py",
+     "line": 289,
+     "cwe": "CWE-79",
+     "title": "Chat Message markdown mode displays raw HTML via IPython Markdown without sanitization (reverted)",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mercury/md.py",
+     "line": 69,
+     "cwe": "CWE-79",
+     "title": "Regex-based _add_inline_style replaces parser-based styling and can mishandle attribute content",
+     "status": "needs-evidence",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 2,
+   "serious": 2,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1200154,
+   "seconds": 26.714,
+   "turns": 8,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2658-85cv-9wwq.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "mercury/md.py",
+     "line": 59,
+     "cwe": "CWE-79",
+     "title": "mr.Markdown renders unsanitized Markdown/HTML (sanitizer removed), stored XSS across viewers",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mercury/chat/message.py",
+     "line": 289,
+     "cwe": "CWE-79",
+     "title": "Chat Message renders Markdown via IPython Markdown without sanitization (sanitizer removed), XSS across viewers",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 2,
+   "serious": 2,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1307106,
+   "seconds": 18.451,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2658-85cv-9wwq.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "mercury/md.py",
+     "line": 58,
+     "cwe": "CWE-79",
+     "title": "Markdown widget renders untrusted Markdown/HTML without sanitization (sanitizer removed)",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mercury/chat/message.py",
+     "line": 289,
+     "cwe": "CWE-79",
+     "title": "Chat Message renders Markdown (incl. LLM/user text) as raw HTML via IPython Markdown; sanitizer removed",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 2,
+   "serious": 2,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.11492949999999999,
+   "seconds": 26.256,
+   "turns": 10,
+   "skill": true,
+   "engine": [
+    "scope",
+    "sinks"
+   ]
+  },
+  "ghsa-2658-85cv-9wwq.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "mercury/md.py",
+     "line": 58,
+     "cwe": "CWE-79",
+     "title": "Markdown widget renders untrusted Markdown as unsanitized HTML (sanitizer removed)",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mercury/chat/message.py",
+     "line": 289,
+     "cwe": "CWE-79",
+     "title": "Chat Message renders Markdown via display(Markdown) with raw HTML passthrough; sanitization removed",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mercury/md.py",
+     "line": 65,
+     "cwe": "CWE-79",
+     "title": "Regex-based _add_inline_style replaces HTMLParser version, can rewrite tag-like text in attribute values",
+     "status": "confirmed",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 3,
+   "serious": 2,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1313563,
+   "seconds": 29.166,
+   "turns": 11,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-2jp7-wwpg-3p9w.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/node/security/OAuth2Provider.ts",
+     "line": 196,
+     "cwe": "CWE-287",
+     "title": "String(user.password) coerces missing/null password to 'undefined'/'null', allowing login with that literal password",
+     "status": "confirmed",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 1,
+   "cost": 0.0891043,
+   "seconds": 18.424,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2jp7-wwpg-3p9w.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/node/security/OAuth2Provider.ts",
+     "line": 194,
+     "cwe": "CWE-287",
+     "title": "OIDC login accepts the literal password 'null'/'undefined' for users with a null or missing password (String() coercion)",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 1,
+   "cost": 0.107532,
+   "seconds": 21.803,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2jp7-wwpg-3p9w.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/node/security/OAuth2Provider.ts",
+     "line": 196,
+     "cwe": "CWE-287",
+     "title": "OIDC login accepts 'undefined'/'null' as password for users with missing/null password (String() coercion)",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 1,
+   "cost": 0.12059200000000002,
+   "seconds": 29.871,
+   "turns": 8,
+   "skill": true,
+   "engine": [
+    "deps",
+    "scope",
+    "sinks"
+   ]
+  },
+  "ghsa-2jp7-wwpg-3p9w.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/node/security/OAuth2Provider.ts",
+     "line": 193,
+     "cwe": "CWE-287",
+     "title": "OAuth login accepts password \"undefined\"/\"null\" for users with no password (String() coercion of missing password)",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 1,
+   "cost": 0.10516650000000001,
+   "seconds": 20.492,
+   "turns": 6,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2jp7-wwpg-3p9w.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/node/utils/ExportHtml.ts",
+     "line": 66,
+     "cwe": "CWE-79",
+     "title": "Unescaped data-* attribute name/value in HTML export (regression of #7905 fix) allows stored XSS",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "src/node/utils/Settings.ts",
+     "line": 1347,
+     "cwe": "CWE-1188",
+     "title": "Removed warnings for default/placeholder user passwords and SSO client secrets",
+     "status": "confirmed",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 2,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.09693660000000001,
+   "seconds": 19.55,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2jp7-wwpg-3p9w.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/node/utils/ExportHtml.ts",
+     "line": 66,
+     "cwe": "CWE-79",
+     "title": "Stored XSS in HTML export: data-* attribute name/value no longer escaped",
+     "status": "confirmed",
+     "severity": "medium"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1385043,
+   "seconds": 24.053,
+   "turns": 8,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2jp7-wwpg-3p9w.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/node/utils/ExportHtml.ts",
+     "line": 66,
+     "cwe": "CWE-79",
+     "title": "Unescaped pad-attribute data in exported HTML span data-* attributes (regression of #7905 escaping)",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "src/node/utils/Settings.ts",
+     "line": 1347,
+     "cwe": "CWE-1392",
+     "title": "Removed warning for default/placeholder user passwords and SSO client secrets",
+     "status": "confirmed",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 2,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1041978,
+   "seconds": 19.931,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-2jp7-wwpg-3p9w.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/node/utils/ExportHtml.ts",
+     "line": 66,
+     "cwe": "CWE-79",
+     "title": "Escaping of exportHtmlAdditionalTagsWithData name/value removed, raw interpolation into exported HTML",
+     "status": "confirmed",
+     "severity": "medium"
+    },
+    {
+     "file": "src/node/utils/Settings.ts",
+     "line": 1347,
+     "cwe": "CWE-1392",
+     "title": "Warnings for default/placeholder user passwords and SSO client secrets removed",
+     "status": "confirmed",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 2,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1941722,
+   "seconds": 44.435,
+   "turns": 15,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-46wx-v44x-9hh2.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0649512,
+   "seconds": 14.446,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-46wx-v44x-9hh2.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1058016,
+   "seconds": 14.082,
+   "turns": 3,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-46wx-v44x-9hh2.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0867189,
+   "seconds": 20.752,
+   "turns": 6,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-46wx-v44x-9hh2.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0604113,
+   "seconds": 12.717,
+   "turns": 8,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-46wx-v44x-9hh2.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/middleware/csrf/index.ts",
+     "line": 29,
+     "cwe": "CWE-352",
+     "title": "CSRF middleware no longer checks text/ping content type, allowing cross-site <a ping> POSTs to bypass Origin/Sec-Fetch-Site validation",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1100209,
+   "seconds": 16.875,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-46wx-v44x-9hh2.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/middleware/csrf/index.ts",
+     "line": 29,
+     "cwe": "CWE-352",
+     "title": "CSRF middleware no longer checks text/ping requests, allowing cross-site POST via hyperlink auditing",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.15350600000000003,
+   "seconds": 16.785,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-46wx-v44x-9hh2.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "src/middleware/csrf/index.ts",
+     "line": 29,
+     "cwe": "CWE-352",
+     "title": "CSRF middleware no longer treats Content-Type text/ping (hyperlink auditing) as a form-style request, bypassing origin checks",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1345715,
+   "seconds": 21.855,
+   "turns": 7,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-46wx-v44x-9hh2.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0607337,
+   "seconds": 13.318,
+   "turns": 8,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-698v-4r3x-3vcv.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.10152230000000001,
+   "seconds": 24.836,
+   "turns": 11,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-698v-4r3x-3vcv.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0763462,
+   "seconds": 11.617,
+   "turns": 3,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-698v-4r3x-3vcv.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0956645,
+   "seconds": 24.345,
+   "turns": 8,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-698v-4r3x-3vcv.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.14096340000000002,
+   "seconds": 33.193,
+   "turns": 14,
+   "skill": true,
+   "engine": [
+    "deps",
+    "scope",
+    "sinks"
+   ]
+  },
+  "ghsa-698v-4r3x-3vcv.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/launch-editor/construct-windows-launch-command.js",
+     "line": 43,
+     "cwe": "CWE-78",
+     "title": "Removed rejection of '%' and line breaks in args before cmd.exe exec (shell:true), re-enabling Windows command injection; try/catch in index.js also removed",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.0690357,
+   "seconds": 18.705,
+   "turns": 6,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-698v-4r3x-3vcv.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/launch-editor/construct-windows-launch-command.js",
+     "line": 43,
+     "cwe": "CWE-78",
+     "title": "Removed % and line-break rejection reintroduces cmd.exe command injection on Windows",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.0852363,
+   "seconds": 19.214,
+   "turns": 3,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-698v-4r3x-3vcv.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/launch-editor/construct-windows-launch-command.js",
+     "line": 43,
+     "cwe": "CWE-78",
+     "title": "Windows launch command builder no longer rejects `%` or line breaks in arguments (tests expect it), allowing cmd.exe variable expansion/injection via exec with shell:true",
+     "status": "confirmed",
+     "severity": "medium"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1014478,
+   "seconds": 27.607,
+   "turns": 12,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-698v-4r3x-3vcv.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/launch-editor/construct-windows-launch-command.js",
+     "line": 43,
+     "cwe": "CWE-78",
+     "title": "Windows launch command no longer rejects '%' or line breaks in arguments (cmd.exe injection regression)",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.105207,
+   "seconds": 27.811,
+   "turns": 14,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-7587-9684-52r6.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.06738340000000001,
+   "seconds": 12.923,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-7587-9684-52r6.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.10432149999999998,
+   "seconds": 11.222,
+   "turns": 2,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-7587-9684-52r6.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.10281099999999999,
+   "seconds": 20.087,
+   "turns": 7,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-7587-9684-52r6.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.047230600000000005,
+   "seconds": 8.813,
+   "turns": 4,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-7587-9684-52r6.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "mem0/vector_stores/databricks.py",
+     "line": 544,
+     "cwe": "CWE-89",
+     "title": "SQL injection in update(): unescaped payload values, unvalidated column names and vector_id (parameterization reverted)",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mem0/vector_stores/databricks.py",
+     "line": 497,
+     "cwe": "CWE-89",
+     "title": "SQL injection in delete(): vector_id interpolated into WHERE clause",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mem0/vector_stores/databricks.py",
+     "line": 407,
+     "cwe": "CWE-89",
+     "title": "insert() inlines values with quote-only escaping; backslash escape can break out of string literal",
+     "status": "needs-evidence",
+     "severity": "medium"
+    }
+   ],
+   "confirmed": 2,
+   "serious": 2,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.07853940000000001,
+   "seconds": 16.424,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-7587-9684-52r6.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "mem0/vector_stores/databricks.py",
+     "line": 538,
+     "cwe": "CWE-89",
+     "title": "SQL injection in Databricks update() via unescaped payload values, column names and vector_id (fix from #4558 reverted)",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mem0/vector_stores/databricks.py",
+     "line": 497,
+     "cwe": "CWE-89",
+     "title": "SQL injection in Databricks delete() via unescaped vector_id (parameterization removed)",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mem0/vector_stores/databricks.py",
+     "line": 404,
+     "cwe": "CWE-89",
+     "title": "SQL injection in Databricks insert(): values inlined with quote-doubling only, bypassable with backslash escapes",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 3,
+   "serious": 3,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.10693720000000001,
+   "seconds": 26.064,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-7587-9684-52r6.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "mem0/vector_stores/databricks.py",
+     "line": 497,
+     "cwe": "CWE-89",
+     "title": "SQL injection reintroduced in delete(): unescaped vector_id interpolated into DELETE",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mem0/vector_stores/databricks.py",
+     "line": 538,
+     "cwe": "CWE-89",
+     "title": "SQL injection in update(): payload keys/values and vector_id interpolated unescaped; identifier validation removed",
+     "status": "confirmed",
+     "severity": "high"
+    },
+    {
+     "file": "mem0/vector_stores/databricks.py",
+     "line": 376,
+     "cwe": "CWE-89",
+     "title": "insert() reverted to inline literals; _format_sql_value escapes only single quotes, not backslashes, so strings can break out of the literal",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 3,
+   "serious": 3,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 1,
+   "cost": 0.0985832,
+   "seconds": 24.718,
+   "turns": 7,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-7587-9684-52r6.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.04673,
+   "seconds": 7.986,
+   "turns": 4,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-8wqc-v2q8-vff2.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1643348,
+   "seconds": 43.144,
+   "turns": 9,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-8wqc-v2q8-vff2.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1989849,
+   "seconds": 36.693,
+   "turns": 8,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-8wqc-v2q8-vff2.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.21648949999999997,
+   "seconds": 54.418,
+   "turns": 14,
+   "skill": true,
+   "engine": [
+    "scope",
+    "sinks",
+    "surface"
+   ]
+  },
+  "ghsa-8wqc-v2q8-vff2.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1641438,
+   "seconds": 44.349,
+   "turns": 8,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-8wqc-v2q8-vff2.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/commons-server/src/libs/server/server.ts",
+     "line": 2379,
+     "cwe": "CWE-22",
+     "title": "Path traversal fix reverted: getSafeFilePath uses startsWith prefix checks, unresolved base dir, and drops root-base guard",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.10632570000000002,
+   "seconds": 19.792,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-8wqc-v2q8-vff2.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/commons-server/src/libs/server/server.ts",
+     "line": 2379,
+     "cwe": "CWE-22",
+     "title": "Path traversal protection regressed in getSafeFilePath (unbounded startsWith prefix checks, root static base allowed)",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.2008953,
+   "seconds": 37.78,
+   "turns": 8,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-8wqc-v2q8-vff2.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/commons-server/src/libs/server/server.ts",
+     "line": 2339,
+     "cwe": "CWE-22",
+     "title": "Path traversal fix from #2255 reverted: prefix-based startsWith check, root base allowed, unresolved environment directory",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.14423249999999999,
+   "seconds": 29.556,
+   "turns": 9,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-8wqc-v2q8-vff2.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.061943000000000005,
+   "seconds": 13.697,
+   "turns": 8,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-c73q-w75p-j82v.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.09429470000000001,
+   "seconds": 19.477,
+   "turns": 7,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-c73q-w75p-j82v.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.106397,
+   "seconds": 19.178,
+   "turns": 6,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-c73q-w75p-j82v.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0838003,
+   "seconds": 16.934,
+   "turns": 7,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-c73q-w75p-j82v.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0532615,
+   "seconds": 9.623,
+   "turns": 6,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-c73q-w75p-j82v.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "authlib/oauth2/rfc7592/endpoint.py",
+     "line": 42,
+     "cwe": "CWE-639",
+     "title": "Removed token.check_client() ownership check in RFC 7592 client configuration endpoint (regression of GHSA-c73q-w75p-j82v): any valid registration token can read/update/delete other clients",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.07086100000000001,
+   "seconds": 11.338,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-c73q-w75p-j82v.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "authlib/oauth2/rfc7592/endpoint.py",
+     "line": 42,
+     "cwe": "CWE-639",
+     "title": "RFC7592 client configuration endpoint no longer verifies the registration access token belongs to the requested client",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.09883049999999999,
+   "seconds": 12.618,
+   "turns": 3,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-c73q-w75p-j82v.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "authlib/oauth2/rfc7592/endpoint.py",
+     "line": 42,
+     "cwe": "CWE-639",
+     "title": "Removed token.check_client() binding in RFC 7592 endpoint reintroduces GHSA-c73q-w75p-j82v (cross-client read/update/delete)",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.0815564,
+   "seconds": 14.887,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-c73q-w75p-j82v.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.05359900000000001,
+   "seconds": 10.785,
+   "turns": 6,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-gcwf-c25f-p9rv.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "tcms/rpc/api/utils.py",
+     "line": 18,
+     "cwe": "CWE-697",
+     "title": "tracker_from_url no longer skips bug systems with empty base_url; schemeless/relative URLs can match them",
+     "status": "needs-evidence",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.09438780000000001,
+   "seconds": 25.817,
+   "turns": 7,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-gcwf-c25f-p9rv.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1157502,
+   "seconds": 24.563,
+   "turns": 10,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-gcwf-c25f-p9rv.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1580475,
+   "seconds": 31.592,
+   "turns": 13,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-gcwf-c25f-p9rv.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1724895,
+   "seconds": 66.844,
+   "turns": 19,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-gcwf-c25f-p9rv.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "tcms/kiwi_auth/views.py",
+     "line": 113,
+     "cwe": "CWE-601",
+     "title": "Open redirect via ?next= in Confirm view (startswith('/') allows //evil.com)",
+     "status": "confirmed",
+     "severity": "medium"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.08391530000000001,
+   "seconds": 21.374,
+   "turns": 7,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-gcwf-c25f-p9rv.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "tcms/kiwi_auth/views.py",
+     "line": 113,
+     "cwe": "CWE-601",
+     "title": "Open redirect in Confirm view via ?next= (startswith('/') allows //evil.example)",
+     "status": "confirmed",
+     "severity": "medium"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1045854,
+   "seconds": 21.473,
+   "turns": 6,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-gcwf-c25f-p9rv.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "tcms/kiwi_auth/views.py",
+     "line": 113,
+     "cwe": "CWE-601",
+     "title": "Open redirect via ?next= in Confirm view (startswith('/') accepts //host and /\\host); reintroduces GHSA-gcwf-c25f-p9rv",
+     "status": "confirmed",
+     "severity": "medium"
+    },
+    {
+     "file": "tcms/rpc/api/utils.py",
+     "line": 18,
+     "cwe": "CWE-20",
+     "title": "tracker_from_url no longer skips BugSystems with empty base_url, which may match scheme-less URLs",
+     "status": "needs-evidence",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.14299079999999997,
+   "seconds": 25.162,
+   "turns": 8,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-gcwf-c25f-p9rv.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.059244000000000005,
+   "seconds": 13.368,
+   "turns": 6,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-jf75-q64q-g65r.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/server/src/service/markdown/mathjax.js",
+     "line": 22,
+     "cwe": "CWE-476",
+     "title": "Unguarded regex match on MathJax error SVG can throw and break comment rendering",
+     "status": "needs-evidence",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1021041,
+   "seconds": 29.781,
+   "turns": 8,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jf75-q64q-g65r.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.09351939999999999,
+   "seconds": 19.635,
+   "turns": 6,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jf75-q64q-g65r.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1202648,
+   "seconds": 30.41,
+   "turns": 10,
+   "skill": true,
+   "engine": [
+    "deps",
+    "scope",
+    "sinks",
+    "surface"
+   ]
+  },
+  "ghsa-jf75-q64q-g65r.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0478778,
+   "seconds": 8.866,
+   "turns": 4,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-jf75-q64q-g65r.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/server/src/logic/token.js",
+     "line": 37,
+     "cwe": "CWE-20",
+     "title": "Removed email/password input validation on POST /api/token allows non-string values (query operator injection) into user lookup",
+     "status": "confirmed",
+     "severity": "medium"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.1013118,
+   "seconds": 22.536,
+   "turns": 10,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jf75-q64q-g65r.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/server/src/logic/token.js",
+     "line": 39,
+     "cwe": "CWE-943",
+     "title": "Login input validation removed; email/password type confusion reaches ORM where clause (NoSQL/SQL operator injection)",
+     "status": "needs-evidence",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.188507,
+   "seconds": 55.032,
+   "turns": 17,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jf75-q64q-g65r.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/server/src/logic/token.js",
+     "line": 37,
+     "cwe": "CWE-943",
+     "title": "Input validation removed from POST /api/token allows query-operator injection into the login lookup",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.2000161,
+   "seconds": 52.424,
+   "turns": 22,
+   "skill": true,
+   "engine": [
+    "deps",
+    "scope",
+    "sinks"
+   ]
+  },
+  "ghsa-jf75-q64q-g65r.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0475128,
+   "seconds": 8.949,
+   "turns": 4,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-jxwj-j7wr-gfrw.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.06895390000000001,
+   "seconds": 10.492,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jxwj-j7wr-gfrw.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0677965,
+   "seconds": 6.797,
+   "turns": 1,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jxwj-j7wr-gfrw.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0709542,
+   "seconds": 12.601,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jxwj-j7wr-gfrw.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0713598,
+   "seconds": 11.37,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jxwj-j7wr-gfrw.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/sanitize-html/index.js",
+     "line": 588,
+     "cwe": "CWE-79",
+     "title": "Regression of GHSA-jxwj-j7wr-gfrw: textarea/xmp raw text re-emitted unescaped outside svg/math (</textarea/> mutation XSS)",
+     "status": "needs-evidence",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.0785514,
+   "seconds": 19.031,
+   "turns": 6,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jxwj-j7wr-gfrw.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/sanitize-html/index.js",
+     "line": 588,
+     "cwe": "CWE-79",
+     "title": "sanitize-html passes textarea/xmp text through unescaped, reintroducing </textarea/> mutation XSS (GHSA-jxwj-j7wr-gfrw)",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.0899586,
+   "seconds": 17.978,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jxwj-j7wr-gfrw.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/sanitize-html/index.js",
+     "line": 588,
+     "cwe": "CWE-79",
+     "title": "Reverts GHSA-jxwj-j7wr-gfrw fix: textarea/xmp text emitted unescaped outside svg/math (</textarea/> mXSS)",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.06624630000000001,
+   "seconds": 16.023,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-jxwj-j7wr-gfrw.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.056312600000000004,
+   "seconds": 11.025,
+   "turns": 6,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-v667-gc2r-2xm7.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1072022,
+   "seconds": 20.515,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-v667-gc2r-2xm7.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1135101,
+   "seconds": 14.428,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-v667-gc2r-2xm7.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0964,
+   "seconds": 19.686,
+   "turns": 7,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-v667-gc2r-2xm7.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.060755500000000004,
+   "seconds": 12.731,
+   "turns": 8,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-v667-gc2r-2xm7.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "back/loaders/express.ts",
+     "line": 123,
+     "cwe": "CWE-306",
+     "title": "Init-guard no longer covers whitelisted /open/user/init and /open/user/notification/init, re-enabling unauthenticated credential reset on initialized systems",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.08844640000000001,
+   "seconds": 16.886,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-v667-gc2r-2xm7.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "back/loaders/express.ts",
+     "line": 123,
+     "cwe": "CWE-306",
+     "title": "Init-guard no longer covers /open/user/init and /open/user/notification/init, allowing unauthenticated credential reset",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.11197830000000002,
+   "seconds": 17.267,
+   "turns": 6,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-v667-gc2r-2xm7.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "back/loaders/express.ts",
+     "line": 123,
+     "cwe": "CWE-306",
+     "title": "Init guard no longer covers whitelisted /open/user/init and /open/user/notification/init, allowing unauthenticated admin credential reset (regression of 6bec52dc)",
+     "status": "confirmed",
+     "severity": "critical"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.087205,
+   "seconds": 15.905,
+   "turns": 5,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-v667-gc2r-2xm7.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.06432180000000001,
+   "seconds": 15.217,
+   "turns": 8,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-wr5r-wqp2-x4fh.neg.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/form/lib/processor.js",
+     "line": 50,
+     "cwe": "CWE-459",
+     "title": "Files uploaded under undeclared or conditionally-skipped field names are stored on accepted submissions and never cleaned up (fix incomplete)",
+     "status": "needs-evidence",
+     "severity": "low"
+    },
+    {
+     "file": "packages/form/lib/processor.js",
+     "line": 52,
+     "cwe": "CWE-459",
+     "title": "Partially inserted attachments are not tracked for cleanup when a later file in the same field fails",
+     "status": "needs-evidence",
+     "severity": "low"
+    }
+   ],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.1277517,
+   "seconds": 39.48,
+   "turns": 9,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-wr5r-wqp2-x4fh.neg.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0942258,
+   "seconds": 16.702,
+   "turns": 2,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-wr5r-wqp2-x4fh.neg.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0460141,
+   "seconds": 7.545,
+   "turns": 4,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-wr5r-wqp2-x4fh.neg.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0467626,
+   "seconds": 8.266,
+   "turns": 4,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  },
+  "ghsa-wr5r-wqp2-x4fh.pos.plain.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/apostrophe/modules/@apostrophecms/page/index.js",
+     "line": 1658,
+     "cwe": "CWE-863",
+     "title": "Inverted archive-restore exception disables destination 'create' permission check on normal page moves (regression of GHSA-wr5r-wqp2-x4fh)",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.0697522,
+   "seconds": 13.613,
+   "turns": 4,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-wr5r-wqp2-x4fh.pos.security-review.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [
+    {
+     "file": "packages/apostrophe/modules/@apostrophecms/page/index.js",
+     "line": 1658,
+     "cwe": "CWE-863",
+     "title": "Page move destination 'create' permission check disabled by inverted archive-restore exception",
+     "status": "confirmed",
+     "severity": "high"
+    }
+   ],
+   "confirmed": 1,
+   "serious": 1,
+   "hit_confirmed": true,
+   "hit_any": true,
+   "extra_confirmed": 0,
+   "cost": 0.10441249999999998,
+   "seconds": 16.413,
+   "turns": 3,
+   "skill": false,
+   "engine": []
+  },
+  "ghsa-wr5r-wqp2-x4fh.pos.skill-engine.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.0580483,
+   "seconds": 12.518,
+   "turns": 7,
+   "skill": true,
+   "engine": []
+  },
+  "ghsa-wr5r-wqp2-x4fh.pos.skill.0": {
+   "ok": true,
+   "parse_error": false,
+   "findings": [],
+   "confirmed": 0,
+   "serious": 0,
+   "hit_confirmed": false,
+   "hit_any": false,
+   "extra_confirmed": 0,
+   "cost": 0.047437900000000005,
+   "seconds": 8.667,
+   "turns": 4,
+   "skill": true,
+   "engine": [
+    "scope"
+   ]
+  }
+ }
+}

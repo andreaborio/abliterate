@@ -1,0 +1,29 @@
+{
+  "model": "claude-sonnet-5-5",
+  "arms": [
+    "plain",
+    "security-review",
+    "skill",
+    "skill-engine"
+  ],
+  "reps": 1,
+  "cases": "bench/data/pilot2.jsonl",
+  "case_ids": [
+    "ghsa-46wx-v44x-9hh2",
+    "ghsa-wr5r-wqp2-x4fh",
+    "ghsa-jf75-q64q-g65r",
+    "ghsa-698v-4r3x-3vcv",
+    "ghsa-8wqc-v2q8-vff2",
+    "ghsa-gcwf-c25f-p9rv",
+    "ghsa-c73q-w75p-j82v",
+    "ghsa-7587-9684-52r6",
+    "ghsa-jxwj-j7wr-gfrw",
+    "ghsa-2jp7-wwpg-3p9w",
+    "ghsa-v667-gc2r-2xm7",
+    "ghsa-2658-85cv-9wwq"
+  ],
+  "claude": "2.1.150 (Claude Code)",
+  "plugin_commit": "b4e49ffe2dbf01e67cd03f09262777fbc4c778f3",
+  "prompt": "Review the changes on this branch, compared with origin/main, for security vulnerabilities before I push.",
+  "contract": "When the review is complete, end your final reply with exactly one fenced ```json block of this form:\n{\"findings\": [{\"file\": \"repo-relative/path\", \"line\": 123, \"cwe\": \"CWE-79\", \"title\": \"short title\", \"status\": \"confirmed\", \"severity\": \"high\"}]}\nstatus is \"confirmed\" for a demonstrated problem or \"needs-evidence\" for an unresolved suspicion; severity is critical, high, medium or low; cwe may be null.\nInclude only problems introduced by the changes under review. Use {\"findings\": []} when there are none."
+}
