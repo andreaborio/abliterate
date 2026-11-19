@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "abliterate",
   "displayName": "abliterate",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Security review of source changes before you push and on every PR: traces data to sinks, disproves false positives, checks dependencies against OSV, CISA KEV and EPSS with reachability, and hunts variants of known vulnerabilities.",
   "author": { "name": "andreaborio", "url": "https://github.com/andreaborio" },
   "homepage": "https://abliterate.io",

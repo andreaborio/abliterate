@@ -18,6 +18,8 @@ Which product rule could this change break? Check it against the diff, callers a
 
 The `abliterate` CLI collects evidence deterministically. The Claude Code plugin puts it on PATH. Use `abliterate <command>`. If it is unavailable and registry access is permitted, use `npx -y abliterate@latest <command>`. The evidence commands read the checkout. If the engine is unavailable, review the local sources by hand and report the missing checks.
 
+Run each command in its own Bash call, with no `;`, `&&`, `||` or pipes joining it to other commands. Restricted permission settings deny a whole compound command when any part of it is not allowed. A denied or failed command is a limit on that command only: Bash, `git` and the review continue. Without the engine, take the scope from `git log --oneline BASE..HEAD` and `git diff --stat BASE...HEAD`, read the change with `git diff BASE...HEAD`, and review it by hand. Report "review incomplete" only for evidence you could not obtain in any allowed way.
+
 | Command | Gives you |
 | --- | --- |
 | `scope --base REF` | Verified snapshots: commits since the merge-base (`push`), staged (`index`), unstaged (`worktree`), untracked |
@@ -125,4 +127,4 @@ Do not revert or stage the user's other changes.
 
 ## Non-interactive runs (CI, hooks)
 
-When something would need the user's answer, record it as `needs-evidence` and mark the review incomplete if it blocks the review. When the workflow requests a file, set `scope.complete` accordingly and validate the report with the flags it passes. The workflow decides whether to fail.
+When something would need the user's answer, record it as `needs-evidence` and mark the review incomplete if it blocks the review. When a tool or command is denied, continue with the allowed ones and name the check you skipped. When the workflow requests a file, set `scope.complete` accordingly and validate the report with the flags it passes. The workflow decides whether to fail.

@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "abliterate"
-version = "0.2.1"
+version = "0.2.2"
 description = "The abliterate security review skills and prompts for coding agents (the analysis engine is on npm)."
 readme = "README.md"
 license = "MIT"
