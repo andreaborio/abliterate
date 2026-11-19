@@ -39,4 +39,4 @@ body:
     id: version
     attributes:
       label: abliterate version
-      placeholder: "0.2.3"
+      placeholder: "0.2.4"

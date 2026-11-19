@@ -1,6 +1,6 @@
 {
   "name": "abliterate",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Security review evidence for coding agents: changed-code sinks, attack surface, known-vulnerability reachability (OSV, CISA KEV, EPSS), variant hunting and SARIF.",
   "author": "andreaborio",
   "bin": {
