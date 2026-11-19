@@ -16,9 +16,9 @@
 ## Data access
 | Safe | Unsafe |
 | --- | --- |
-| Ecto `where: [id: ^id]`, `Repo.get_by(Item, id: ^id)`, changesets with an allowlist | `fragment("... #{value} ...")`, `Ecto.Adapters.SQL.query` with interpolated SQL, `Repo.get(Item, params["id"])` without validation |
+| Ecto `where: [id: ^id]`, `Repo.get_by(Item, id: ^id)`, changesets with an allowlist | `fragment("... #{value} ...")`, `Ecto.Adapters.SQL.query` with interpolated SQL |
 | `Ecto.Multi` and changesets that cast only permitted fields | `cast/4` with a broad field list that includes role, owner or balance fields |
-| Queries scoped by `current_user` or tenant before loading an object | `Repo.get!(Item, id)` followed by no ownership check |
+| Queries scoped by `current_user` or tenant before loading an object | `Repo.get(Item, params["id"])` or `Repo.get!(Item, id)` followed by no ownership check (an authorization gap, not injection: the id is cast and bound) |
 
 `^` binds a value in an Ecto query; it is not string interpolation. Review `fragment/1` and raw SQL separately because they can bypass query parameterization.
 
