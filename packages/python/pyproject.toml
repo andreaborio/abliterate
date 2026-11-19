@@ -11,10 +11,12 @@ license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "andreaborio" }]
 requires-python = ">=3.9"
+keywords = ["security", "code-review", "sast", "sarif", "devsecops", "agent-skill", "claude-code", "codex", "ai-agents", "appsec"]
 
 [project.scripts]
 abliterate = "abliterate.cli:main"
 
 [project.urls]
+Homepage = "https://abliterate.io"
 Repository = "https://github.com/andreaborio/abliterate"
 Issues = "https://github.com/andreaborio/abliterate/issues"

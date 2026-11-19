@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a vulnerability in abliterate itself
+    url: https://github.com/andreaborio/abliterate/security/advisories/new
+    about: Use private vulnerability reporting, not a public issue.
+  - name: Questions and ideas
+    url: https://github.com/andreaborio/abliterate/discussions
+    about: Ask how to use abliterate or share what you reviewed with it.

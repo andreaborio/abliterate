@@ -15,6 +15,10 @@ It has three parts that work together:
 
 There is no abliterate model or service. The reasoning runs in your agent, with its permissions. The engine runs locally and is read-only.
 
+<img src="docs/assets/demo-hook.svg" width="850" alt="A git push with an interpolated SQL query: the pre-push hook reports CWE-89 at src/routes/users.js line 12 and lets the push continue">
+
+<sub>Real output of the pre-push hook on the synthetic `sqli-express` fixture (`evals/make_fixtures.py`), trimmed to the essential lines.</sub>
+
 ## Install
 
 **Claude Code** (plugin: both skills and a read-only reviewer agent)

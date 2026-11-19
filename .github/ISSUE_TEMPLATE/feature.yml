@@ -1,0 +1,16 @@
+name: Feature or framework guide
+description: Propose a rule, a language, a framework guide or an integration.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What would you like to review that abliterate does not cover today?
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example vulnerable code and its guarded twin
+      description: Rules need a seeded vulnerability and a safe twin that must not be flagged (see CONTRIBUTING).
+      render: text

@@ -21,16 +21,25 @@
     "url": "git+https://github.com/andreaborio/abliterate.git",
     "directory": "packages/npm"
   },
-  "homepage": "https://github.com/andreaborio/abliterate",
+  "homepage": "https://abliterate.io",
   "keywords": [
     "security",
     "code-review",
     "sast",
     "sarif",
     "osv",
+    "cisa-kev",
+    "epss",
+    "devsecops",
+    "pre-push",
+    "git-hook",
+    "github-action",
     "agent-skill",
     "claude-code",
-    "codex"
+    "codex",
+    "ai-agents",
+    "vulnerability",
+    "appsec"
   ],
   "bugs": {
     "url": "https://github.com/andreaborio/abliterate/issues"

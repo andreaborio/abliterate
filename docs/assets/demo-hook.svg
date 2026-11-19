@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="850" height="330" viewBox="0 0 850 330" role="img" aria-labelledby="title desc">
+  <title id="title">abliterate pre-push hook flagging a SQL injection</title>
+  <desc id="desc">A git push of a branch with an interpolated SQL query. The pre-push hook reports CWE-89 at src/routes/users.js line 12 and lets the push continue.</desc>
+  <style>.l0{animation:a0 15s linear infinite}@keyframes a0{0%,16%{opacity:0}17%,93%{opacity:1}97%,100%{opacity:0}}.l1{animation:a1 15s linear infinite}@keyframes a1{0%,25%{opacity:0}26%,93%{opacity:1}97%,100%{opacity:0}}.l2{animation:a2 15s linear infinite}@keyframes a2{0%,34%{opacity:0}35%,93%{opacity:1}97%,100%{opacity:0}}.l3{animation:a3 15s linear infinite}@keyframes a3{0%,45%{opacity:0}46%,93%{opacity:1}97%,100%{opacity:0}}.l4{animation:a4 15s linear infinite}@keyframes a4{0%,49%{opacity:0}50%,93%{opacity:1}97%,100%{opacity:0}}.cmd{animation:t 15s linear infinite;clip-path:inset(0 0 0 0)}@keyframes t{0%{clip-path:inset(0 100% 0 0)}14%,93%{clip-path:inset(0 0 0 0)}97%,100%{clip-path:inset(0 100% 0 0)}}.note{animation:n 15s linear infinite}@keyframes n{0%,56%{opacity:0}60%,93%{opacity:1}97%,100%{opacity:0}}@media (prefers-reduced-motion:reduce){*{animation:none!important}}</style>
+  <rect width="850" height="330" rx="9" fill="#121515"/>
+  <rect x="15" y="15" width="820" height="300" rx="5" fill="#090b0b" stroke="#343938"/>
+  <g font-family="ui-monospace,Menlo,Consolas,monospace">
+    <rect x="28" y="30" width="11" height="11" rx="2" fill="#ffb21e"/>
+    <text x="48" y="40" fill="#ffb21e" font-size="14">PRE-PUSH HOOK</text>
+    <text x="822" y="40" text-anchor="end" fill="#abb3af" font-size="13">synthetic fixture: sqli-express</text>
+    <path d="M28 54h794" stroke="#464b49"/>
+    <g class="cmd"><text x="28" y="82" fill="#eff1eb" font-size="15"><tspan fill="#ffb21e">$ </tspan>git push origin feature:feature-search</text></g>
+    <text class="l0" x="28" y="108" fill="#abb3af" font-size="15">abliterate: reviewing refs/heads/feature-search at 3e422f9 against 3e85e9e</text><text class="l1" x="28" y="142" fill="#ffb21e" font-size="15">CWE-89  src/routes/users.js:12  js.sql.interpolated-query  high</text><text class="l2" x="28" y="172" fill="#eff1eb" font-size="15">await db.query(`SELECT id, name FROM users WHERE name ILIKE &#x27;%${term}%&#x27;`);</text><text class="l3" x="28" y="214" fill="#abb3af" font-size="15">To remote.git</text><text class="l4" x="28" y="238" fill="#abb3af" font-size="15"> * [new branch]      feature -&gt; feature-search</text>
+    <g class="note"><path d="M28 262h794" stroke="#464b49" stroke-dasharray="4 4"/>
+    <text x="28" y="290" fill="#abb3af" font-size="14">Report-only by default: the push goes through. ABLITERATE_BLOCK=1 stops it.</text></g>
+  </g>
+</svg>
